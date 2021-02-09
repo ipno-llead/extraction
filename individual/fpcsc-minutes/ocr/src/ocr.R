@@ -64,12 +64,14 @@ meta <- function(fn) {
 
 # helper fns {{{
 process_image <- function(img) {
-    w <- dim(img[[1]])[2]
-    h <- dim(img[[1]])[3]
-    geom <- paste0(
-        w-200, "x", h-120, "+150+60"
-    )
-    image_crop(img, geom)
+    return(img)
+    # worth trying without any cropping
+    #     w <- dim(img[[1]])[2]
+    #     h <- dim(img[[1]])[3]
+    #     geom <- paste0(
+    #         w-200, "x", h-120, "+150+60"
+    #     )
+    #     image_crop(img, geom)
 }
 
 ocr_cached <- function(filename, pageno, engine, DPI=OCR_DPI, xmldir) {
