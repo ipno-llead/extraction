@@ -11,12 +11,11 @@ all: output/fpcsc.parquet
 clean: 
 	-rm output/fpcsc.parquet*
 
-output/fpcsc.parquet: \
-		src/ocr.R \
-		$(pdfs)
+output/fpcsc.parquet: src/ocr-txt.R $(pdfs)
+	-mkdir output
 	Rscript --vanilla $< \
 		--inputs="$(pdfs_delim)" \
-		--xmldir=output/xml300 \
+		--txtdir=output/txt300 \
 		--DPI=300 \
 		--output=$@
 
