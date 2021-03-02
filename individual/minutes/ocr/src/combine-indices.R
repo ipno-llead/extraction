@@ -24,9 +24,9 @@ indices <- strsplit(args$inputs, "\\s+")[[1]]
 #              "../../../dl-dropbox/output/mandeville/pcsb/index.csv")
 
 map_dfr(indices, read_delim, delim="|", na="", col_types='cccccc') %>%
-    select(local_name, sha1_hash) %>%
     transmute(filename = paste(args$dbtask, local_name, sep="/"),
-              filesha1=sha1_hash) %>%
+              filesha1=sha1_hash, url=permalink,
+              db_id, db_path, db_content_hash) %>%
     write_delim(args$output, delim="|")
 
 # done.

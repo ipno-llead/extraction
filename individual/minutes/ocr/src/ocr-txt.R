@@ -23,7 +23,7 @@ pacman::p_load(
 
 # command line args {{{
 parser <- ArgumentParser()
-parser$add_argument("--index", default="output/index.csv")
+parser$add_argument("--index")
 parser$add_argument("--txtdir", default="output/txt300")
 parser$add_argument("--DPI", type="integer", default=300)
 parser$add_argument("--output")
@@ -31,7 +31,7 @@ args <- parser$parse_args()
 # }}}
 
 # setup etc. {{{
-index <- read_delim(args$index, delim="|", na="", col_types='cc')
+index <- read_delim(args$index, delim="|", na="", col_types='cccccc')
 
 # input_files <- str_split(args$inputs, "\\|")[[1]] %>%
 #     purrr::keep(~str_length(.) > 0)
