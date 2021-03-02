@@ -23,7 +23,7 @@ pacman::p_load(
 
 # command line args {{{
 parser <- ArgumentParser()
-parser$add_argument("--inputs")
+parser$add_argument("--index", default="output/index.csv")
 parser$add_argument("--txtdir", default="output/txt300")
 parser$add_argument("--DPI", type="integer", default=300)
 parser$add_argument("--output")
@@ -31,8 +31,10 @@ args <- parser$parse_args()
 # }}}
 
 # setup etc. {{{
-input_files <- str_split(args$inputs, "\\|")[[1]] %>%
-    purrr::keep(~str_length(.) > 0)
+index <- read_delim(args$index, delim="|", na="", col_types='cc')
+
+# input_files <- str_split(args$inputs, "\\|")[[1]] %>%
+#     purrr::keep(~str_length(.) > 0)
 
 OCR_DPI <- args$DPI
 log_info("DPI: ", OCR_DPI)
@@ -53,9 +55,11 @@ ocr_cached <- function(filename, pageno, engine, DPI, txtdir) {
     txt
 }
 
-process_pdf <- function(doc, txtdir, DPI=OCR_DPI) {
+process_pdf <- function(doc, expected_hash,
+                        txtdir=args$txtdir, DPI=OCR_DPI) {
     n_pages <- pdf_length(doc)
     hash <- digest::digest(doc, file=TRUE, algo="sha1")
+    stopifnot("file has expected hash" = hash == expected_hash)
     fileid <- stub(hash)
     filedir <- paste0(txtdir, "/", hash)
     if (!dir.exists(filedir)) dir.create(filedir, recursive=TRUE)
@@ -69,7 +73,8 @@ process_pdf <- function(doc, txtdir, DPI=OCR_DPI) {
 # }}}
 
 log_info("starting import (using cached xml if available)")
-processed <- map_dfr(input_files, process_pdf, txtdir=args$txtdir)
+processed <- map2_dfr(index$filename, index$filesha1, process_pdf,
+                      txtdir=args$txtdir, DPI=OCR_DPI)
 log_info("finished importing documents")
 
 write_parquet(processed, args$output)

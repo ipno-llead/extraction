@@ -10,11 +10,11 @@ clean:
 
 output/matched-entities.parquet: \
 		src/named-entities.R \
-		input/fpcsc.parquet \
+		input/minutes.parquet \
 		input/POST_PPRR_11-6-2020.csv input/POST_PPRR_2-3-2021.csv
 	-mkdir output
 	Rscript --vanilla $< \
-		--input=input/fpcsc.parquet \
+		--input=input/minutes.parquet \
 		--tagger=frozen/english-ewt-ud-2.4-190531.udpipe \
 		--output=$@ > output/named-entities-log.txt
 
