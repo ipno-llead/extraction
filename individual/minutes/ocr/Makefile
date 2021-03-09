@@ -2,7 +2,8 @@
 # vim: set fdm=marker fmr={{{,}}} fdl=0 foldcolumn=4:
 
 indices := ../../../dl-dropbox/output/east-baton-rouge/fpcsc/index.csv \
-	../../../dl-dropbox/output/mandeville/pcsb/index.csv
+	../../../dl-dropbox/output/mandeville/pcsb/index.csv \
+	../../../dl-dropbox/output/kenner/fpcsb/index.csv
 
 .PHONY: all clean
 

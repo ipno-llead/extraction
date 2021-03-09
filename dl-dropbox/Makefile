@@ -7,13 +7,25 @@ ebr_fpcsc_out_path := output/east-baton-rouge/fpcsc
 mvil_pcsb_db_path := PPACT/data/St. Tammany/Data Collected/Mandeville/Mandeville Police Civil Service Board/Minutes
 mvil_pcsb_out_path := output/mandeville/pcsb
 
+knr_fpcsb_db_path := PPACT/data/Jefferson/Data Collected/Kenner/Kenner Fire and Police Civil Service Board
+knr_fpcsb_out_path := output/kenner/fpcsb
+
 token := frozen/auth-token.rds
 
 .PHONY: all clean
 
 all: \
 	$(ebr_fpcsc_out_path)/index.csv \
-	$(mvil_pcsb_out_path)/index.csv
+	$(mvil_pcsb_out_path)/index.csv \
+	$(knr_fpcsb_out_path)/index.csv
+
+$(knr_fpcsb_out_path)/index.csv: src/dl.R
+	-mkdir -p $(knr_fpcsb_out_path)
+	Rscript --vanilla $< \
+		--path="$(knr_fpcsb_db_path)" \
+		--token="$(token)" \
+		--outdir="$(knr_fpcsb_out_path)"
+
 
 $(ebr_fpcsc_out_path)/index.csv: src/dl.R
 	-mkdir -p $(ebr_fpcsc_out_path)
