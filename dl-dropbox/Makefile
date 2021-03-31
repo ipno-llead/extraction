@@ -10,6 +10,15 @@ mvil_pcsb_out_path := output/mandeville/pcsb
 knr_fpcsb_db_path := PPACT/data/Jefferson/Data Collected/Kenner/Kenner Fire and Police Civil Service Board
 knr_fpcsb_out_path := output/kenner/fpcsb
 
+wwgo_db_path := PPACT/data/Jefferson/Data Collected/Westwego/Westwego Fire and Police Civil Service Board
+wwgo_out_path := output/westwego/fpcsb
+
+viv_db_path := PPACT/data/Caddo Parish/Data Collected/Vivian/Vivian Town Council
+viv_out_path := output/vivian/vtc
+
+la_db_path := PPACT/data/Louisiana State/Louisiana State Police Commission/Data Collected/Minutes
+la_out_path := output/louisiana_state/lspc
+
 token := frozen/auth-token.rds
 
 .PHONY: all clean
@@ -17,7 +26,32 @@ token := frozen/auth-token.rds
 all: \
 	$(ebr_fpcsc_out_path)/index.csv \
 	$(mvil_pcsb_out_path)/index.csv \
-	$(knr_fpcsb_out_path)/index.csv
+	$(knr_fpcsb_out_path)/index.csv \
+	$(wwgo_out_path)/index.csv \
+	$(viv_out_path)/index.csv \
+	$(la_out_path)/index.csv
+
+$(la_out_path)/index.csv: src/dl.R
+	-mkdir -p $(la_out_path)
+	Rscript --vanilla $< \
+		--path="$(la_db_path)" \
+		--token="$(token)" \
+		--outdir="$(la_out_path)"
+
+$(viv_out_path)/index.csv: src/dl.R
+	-mkdir -p $(viv_out_path)
+	Rscript --vanilla $< \
+		--path="$(viv_db_path)" \
+		--token="$(token)" \
+		--outdir="$(viv_out_path)"
+
+$(wwgo_out_path)/index.csv: src/dl.R
+	-mkdir -p $(wwgo_out_path)
+	Rscript --vanilla $< \
+		--path="$(wwgo_db_path)" \
+		--token="$(token)" \
+		--outdir="$(wwgo_out_path)"
+
 
 $(knr_fpcsb_out_path)/index.csv: src/dl.R
 	-mkdir -p $(knr_fpcsb_out_path)
