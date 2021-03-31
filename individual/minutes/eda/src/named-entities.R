@@ -16,7 +16,7 @@ pacman::p_load(
 
 # args {{{
 parser <- ArgumentParser()
-parser$add_argument("--input", default = "input/fpcsc.parquet")
+parser$add_argument("--input")
 parser$add_argument("--tagger", default = "frozen/english-ewt-ud-2.4-190531.udpipe")
 parser$add_argument("--output")
 args <- parser$parse_args()
