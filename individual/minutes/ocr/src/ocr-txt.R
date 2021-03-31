@@ -64,7 +64,7 @@ process_pdf <- function(doc, expected_hash,
     filedir <- paste0(txtdir, "/", hash)
     if (!dir.exists(filedir)) dir.create(filedir, recursive=TRUE)
     eng <- tesseract(language = "eng",
-                     options  = list(tessedit_pageseg_mode = 3),
+                     options  = list(tessedit_pageseg_mode = 1),
                      cache    = TRUE)
     out <- tibble(filename=doc, fileid=fileid, pageno = seq_len(n_pages)) %>%
         mutate(text=map2_chr(filename, pageno, ocr_cached,

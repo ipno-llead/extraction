@@ -3,7 +3,10 @@
 
 indices := ../../../dl-dropbox/output/east-baton-rouge/fpcsc/index.csv \
 	../../../dl-dropbox/output/mandeville/pcsb/index.csv \
-	../../../dl-dropbox/output/kenner/fpcsb/index.csv
+	../../../dl-dropbox/output/kenner/fpcsb/index.csv \
+	../../../dl-dropbox/output/louisiana_state/lspc/index.csv \
+	../../../dl-dropbox/output/vivian/vtc/index.csv \
+	../../../dl-dropbox/output/westwego/fpcsb/index.csv
 
 .PHONY: all clean
 
