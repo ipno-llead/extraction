@@ -2,9 +2,9 @@
 # vim: set fdm=marker fmr={{{,}}} fdl=0 foldcolumn=4:
 
 minutes := ../import/output/minutes.parquet
-outstub := output/sampled-20210331
+outstub := output/sampled-20210407D
 outputs := $(outstub).csv $(outstub).pdf
-N := 5
+N := 10
 
 .PHONY: all clean
 

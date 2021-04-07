@@ -6,7 +6,8 @@ pacman::p_load(
     argparse,
     dplyr,
     purrr,
-    readr
+    readr,
+    stringr
 )
 # }}}
 
@@ -27,6 +28,8 @@ map_dfr(indices, read_delim, delim="|", na="", col_types='cccccc') %>%
     transmute(filename = paste(args$dbtask, local_name, sep="/"),
               filesha1=sha1_hash, url=permalink,
               db_id, db_path, db_content_hash) %>%
+    # NOTE: removing "agenda" docs, looking only for meeting minutes here
+    filter(!str_detect(filename, regex("agenda", ignore_case=TRUE))) %>%
     write_delim(args$output, delim="|")
 
 # done.
