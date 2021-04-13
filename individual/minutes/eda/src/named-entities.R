@@ -5,18 +5,23 @@
 pacman::p_load(
     argparse,
     arrow,
+    assertr,
     dplyr,
     readr,
     logger,
+    purrr,
     stringr,
     tidyr,
-    udpipe
+    udpipe,
+    writexl
 )
 # }}}
 
 # args {{{
 parser <- ArgumentParser()
 parser$add_argument("--input")
+parser$add_argument("--index")
+parser$add_argument("--roster")
 parser$add_argument("--tagger", default = "frozen/english-ewt-ud-2.4-190531.udpipe")
 parser$add_argument("--output")
 args <- parser$parse_args()
@@ -24,6 +29,15 @@ args <- parser$parse_args()
 
 docs <- read_parquet(args$input) %>% rename(pg=pageno)
 tagger <- udpipe_load_model(file=args$tagger)
+index <- read_delim(args$index, delim="|", na="",
+                    col_types = cols(.default=col_character())) %>%
+    mutate(fileid = str_sub(filesha1, 1, 7))
+roster <- readr::read_csv("input/roster.csv",
+                col_types = cols(.default=col_character())) %>%
+    distinct(uid, last_name, middle_name, middle_initial, first_name)
+
+stopifnot(length(unique(roster$uid)) == nrow(roster))
+stopifnot(!any(is.na(roster$uid)))
 
 # docs2chunks {{{
 pad_num <- function(num) str_pad(num, 4, side="left", pad="0")
@@ -62,31 +76,27 @@ propn <- docs_parsed %>%
     summarise(name = paste(token, collapse = " "), .groups="drop")
 # }}}
 
-# get statewide roster data {{{
-roster <- readr::read_csv("input/POST_PPRR_11-6-2020.csv",
-                col_types = cols(.default=col_character())) %>%
-    select(agency=`Agency Name`, last=Lastname, first=Firstname) %>%
-    bind_rows(
-        readr::read_csv("input/POST_PPRR_2-3-2021.csv", skip=1,
-                        col_types = cols(.default=col_character())) %>%
-            select(agency=`Agency Name`, last=Lastname, first=Firstname)
-    ) %>% mutate(last=str_to_lower(last), first=str_to_lower(first)) %>%
-    distinct(first, last)
-
+# prep statewide roster data {{{
+# note: ignoring middle names for now
 roster_xref <- roster %>%
-    mutate(rosterid=seq_len(nrow(.)),
-           fullname=paste(first, last)) %>%
-    pivot_longer(cols=c(-rosterid, -fullname),
+    select(uid, first_name, last_name) %>%
+    mutate(across(c(first_name, last_name),
+                  ~replace_na(str_to_lower(.), ""))) %>%
+    mutate(fullname=paste(first_name, last_name),
+           fullname=str_squish(fullname)) %>%
+    pivot_longer(cols=c(-uid, -fullname),
                  names_to="tokentype", values_to="name")
 # }}}
 
 # match {{{
 # to do -- match based on string similarity to catch slight differences
+log_info("starting match")
 matched <- propn %>%
     mutate(candidate=str_to_lower(name)) %>%
     filter(!str_detect(candidate, "(\\W|^)council(\\W|$)")) %>%
     select(-name) %>%
     mutate(token=str_split(candidate, "\\s+")) %>%
+    filter(map_int(token, length) <= 5) %>%
     unnest(token) %>%
     distinct(fileid, pg, chunkid, entity_id, candidate, token) %>%
     group_by(fileid, pg, chunkid, entity_id) %>%
@@ -94,16 +104,24 @@ matched <- propn %>%
     ungroup %>%
     inner_join(rename(roster_xref, canon=fullname),
                by=c(token="name")) %>%
-    group_by(fileid, pg, chunkid, entity_id, rosterid) %>%
+    group_by(fileid, pg, chunkid, entity_id, uid) %>%
     filter(n() > 1) %>% ungroup %>%
-    distinct(fileid, pg, candidate, name=canon)
+    distinct(fileid, pg, candidate, uid)
+log_info("done matching")
 # }}}
 
 log_info(distinct(matched, fileid) %>% nrow, " documents processed (",
          distinct(matched, fileid, pg) %>% nrow, " pages)")
 log_info(nrow(matched), " distinct matches")
-log_info(distinct(matched, name) %>% nrow, " unique names matched")
+log_info(distinct(matched, uid) %>% nrow, " unique ppl matched")
 
-write_parquet(matched, args$output)
+log_info("joining to metadata files for export")
+out <- matched %>%
+    inner_join(index,by="fileid") %>%
+    select(fileid, db_path, pg, candidate, uid) %>%
+    inner_join(roster, by="uid") %>%
+    verify(nrow(.) == nrow(matched))
+
+write_xlsx(out, args$output)
 
 # done.

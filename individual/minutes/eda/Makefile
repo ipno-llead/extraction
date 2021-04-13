@@ -3,18 +3,21 @@
 
 .PHONY: all clean
 
-all: output/matched-entities.parquet
+all: output/matched-entities.xlsx
 
 clean: 
 		-rm -r output/*
 
-output/matched-entities.parquet: \
+output/matched-entities.xlsx: \
 		src/named-entities.R \
 		input/minutes.parquet \
-		input/POST_PPRR_11-6-2020.csv input/POST_PPRR_2-3-2021.csv
+		input/index.csv \
+		input/roster.csv
 	-mkdir output
 	Rscript --vanilla $< \
 		--input=input/minutes.parquet \
+		--index=input/index.csv \
+		--roster=input/roster.csv \
 		--tagger=frozen/english-ewt-ud-2.4-190531.udpipe \
 		--output=$@ > output/named-entities-log.txt
 
