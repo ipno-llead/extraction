@@ -3,12 +3,12 @@
 
 .PHONY: all clean
 
-all: output/matched-entities.xlsx
+all: output/matched-entities-from-minutes.xlsx
 
 clean: 
 		-rm -r output/*
 
-output/matched-entities.xlsx: \
+output/matched-entities-from-minutes.xlsx: \
 		src/named-entities.R \
 		input/minutes.parquet \
 		input/index.csv \
