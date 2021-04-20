@@ -33,9 +33,6 @@ args <- parser$parse_args()
 # setup etc. {{{
 index <- read_delim(args$index, delim="|", na="", col_types='cccccc')
 
-# input_files <- str_split(args$inputs, "\\|")[[1]] %>%
-#     purrr::keep(~str_length(.) > 0)
-
 OCR_DPI <- args$DPI
 log_info("DPI: ", OCR_DPI)
 stub <- function(hash) str_sub(hash, 1, 7)

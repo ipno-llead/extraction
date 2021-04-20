@@ -14,22 +14,17 @@ pacman::p_load(
 # command line args {{{
 parser <- ArgumentParser()
 parser$add_argument("--inputs")
-parser$add_argument("--dbtask", default="../../../dl-dropbox")
+parser$add_argument("--dbtask")
 parser$add_argument("--output")
 args <- parser$parse_args()
 # }}}
 
 indices <- strsplit(args$inputs, "\\s+")[[1]]
 
-# indices <- c("../../../dl-dropbox/output/east-baton-rouge/fpcsc/index.csv",
-#              "../../../dl-dropbox/output/mandeville/pcsb/index.csv")
-
 map_dfr(indices, read_delim, delim="|", na="", col_types='cccccc') %>%
     transmute(filename = paste(args$dbtask, local_name, sep="/"),
               filesha1=sha1_hash, url=permalink,
               db_id, db_path, db_content_hash) %>%
-    # NOTE: removing "agenda" docs, looking only for meeting minutes here
-    filter(!str_detect(filename, regex("agenda", ignore_case=TRUE))) %>%
     write_delim(args$output, delim="|")
 
 # done.
