@@ -19,6 +19,9 @@ viv_out_path := output/vivian/vtc
 la_db_path := PPACT/data/Louisiana State/Louisiana State Police Commission/Data Collected/Minutes
 la_out_path := output/louisiana_state/lspc
 
+sldl_db_path := PPACT/data/St. Tammany/Data Collected/Slidell/Slidell Civil Service Board
+sldl_out_path := output/slidell/scsb
+
 token := frozen/auth-token.rds
 
 .PHONY: all clean
@@ -29,7 +32,15 @@ all: \
 	$(knr_fpcsb_out_path)/index.csv \
 	$(wwgo_out_path)/index.csv \
 	$(viv_out_path)/index.csv \
-	$(la_out_path)/index.csv
+	$(la_out_path)/index.csv \
+	$(sldl_out_path)/index.csv
+
+$(sldl_out_path)/index.csv: src/dl.R
+	-mkdir -p $(sldl_out_path)
+	Rscript --vanilla $< \
+		--path="$(sldl_db_path)" \
+		--token="$(token)" \
+		--outdir="$(sldl_out_path)"
 
 $(la_out_path)/index.csv: src/dl.R
 	-mkdir -p $(la_out_path)
