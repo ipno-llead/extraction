@@ -2,7 +2,7 @@
 # vim: set fdm=marker fmr={{{,}}} fdl=0 foldcolumn=4:
 
 ebr_fpcsc_db_path := PPACT/data/East Baton Rouge/Data Collected/Baton Rouge Fire and Police Civil Service Commission/Meeting Records/Minutes
-ebr_fpcsc_out_path := output/east-baton-rouge/fpcsc
+ebr_fpcsc_out_path := output/east_baton_rouge/fpcsc
 
 mvil_pcsb_db_path := PPACT/data/St. Tammany/Data Collected/Mandeville/Mandeville Police Civil Service Board/Minutes
 mvil_pcsb_out_path := output/mandeville/pcsb

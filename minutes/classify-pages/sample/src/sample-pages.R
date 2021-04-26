@@ -19,7 +19,7 @@ pacman::p_load(
 # args {{{
 parser <- ArgumentParser()
 parser$add_argument("--input", default = "../import/output/minutes.parquet")
-parser$add_argument("--meta", default = "../../ocr/output/index.csv")
+parser$add_argument("--meta", default = "../../import/index/output/metadata.csv")
 parser$add_argument("--frozendir", default = "frozen")
 parser$add_argument("--N", type="integer", default=5L)
 parser$add_argument("--outstub", default="output/sampled-20210331")
@@ -27,7 +27,6 @@ args <- parser$parse_args()
 # }}}
 
 set.seed(19481210)
-DB_TASK_PATH <- "../../../../dl-dropbox"
 output_dir <- dirname(args$outstub)
 working_dir <- paste0(output_dir, "/working")
 
@@ -49,37 +48,31 @@ if (!dir.exists(working_dir)) dir.create(working_dir, recursive=TRUE)
 pgs <- read_parquet(args$input) %>%
     anti_join(already, by=c("fileid", "pageno"))
 meta <- read_delim(args$meta, delim="|",
-                   col_types=cols(.default=col_character()))
+                   col_types=cols(.default=col_character())) %>%
+    select(fileid, filepath, db_path)
 
 samps <- pgs %>%
-    mutate(filepath=str_extract(filename, "/output/.+$"),
-           filepath=paste0(DB_TASK_PATH, filepath),
-           region=str_match(filepath, "/output/([^/]+)/")[,2],
-           samp_weight = if_else(pageno == 1, 2, 1)) %>%
-    nest(data=-region) %>%
+    filter(f_cat == "minutes") %>%
+    inner_join(meta,by="fileid") %>%
+    mutate(filepath=here::here(str_replace(filepath, "^[^/]+/", ""))) %>%
+    nest(data=c(-f_region)) %>%
     mutate(sampsize=pmin(args$N, map_int(data, nrow))) %>%
-    mutate(data=map2(data, sampsize, sample_n, weight=samp_weight)) %>%
+    mutate(data=map2(data, sampsize, sample_n)) %>%
     unnest(data)
 
 subsets <- samps %>%
-    group_by(fileid, region, input=filepath) %>%
+    group_by(fileid, f_region, f_cat, input=filepath) %>%
     summarise(pages=list(pageno), .groups='drop') %>%
     mutate(output=paste0(working_dir, "/", basename(input))) %>%
     mutate(subsetted_file=pmap_chr(., pdfpgs))
 
-# pgs <- meta %>%
-#     mutate(fileid=str_sub(filesha1, 1, 7)) %>%
-#     select(fileid, db_path) %>%
-#     inner_join(pgs, by="fileid")
-
 fileinfo <- meta %>% 
-    mutate(fileid=str_sub(filesha1, 1, 7)) %>%
     select(fileid, db_path)
 
 out <- subsets %>%
     inner_join(fileinfo, by="fileid") %>%
     unnest(pages) %>%
-    transmute(fileid, region, db_path,
+    transmute(fileid, f_region, f_cat, db_path,
               #               filename=str_replace_all(input, "\\.\\./", ""),
               #               filename=str_match(filename, "/output/(.+)$")[,2],
               pg=pages, label=NA_character_, notes=NA_character_) %>%
