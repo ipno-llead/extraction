@@ -27,17 +27,16 @@ labs <- read_parquet(args$pagetypes)
 
 docids <- labs %>%
     arrange(fileid, pageno) %>%
-    group_by(fileid) %>%
     mutate(newdoc = pageno == 1 | pagetype != "continue") %>%
-    ungroup %>%
+    group_by(fileid) %>%
     mutate(docseqid = cumsum(newdoc)) %>%
     group_by(fileid, docseqid) %>%
     mutate(hashargs = paste0(fileid, ".", pad_num(pageno), collapse=".")) %>%
-    ungroup %>%
     mutate(docid = map_chr(hashargs, digest, algo="sha1", serialize=FALSE),
            docid = str_sub(docid, 1, 8)) %>%
-    mutate(doctype = if_else(pagetype == "continue", NA_character_, pagetype),
+    mutate(doctype = if_else(pageno == min(pageno), pagetype, NA_character_),
            doctype = max(doctype, na.rm=TRUE)) %>%
+    ungroup %>%
     select(fileid, pageno, docid, doctype)
 
 out <- mins %>%
