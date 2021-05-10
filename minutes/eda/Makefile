@@ -6,7 +6,7 @@
 all: output/matched-entities-from-minutes.xlsx
 
 clean: 
-		-rm -r output/*
+	-rm -r output/*
 
 output/matched-entities-from-minutes.xlsx: \
 		src/named-entities.R \

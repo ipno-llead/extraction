@@ -20,7 +20,6 @@ pacman::p_load(
 # args {{{
 parser <- ArgumentParser()
 parser$add_argument("--input")
-parser$add_argument("--index")
 parser$add_argument("--roster")
 parser$add_argument("--tagger", default = "frozen/english-ewt-ud-2.4-190531.udpipe")
 parser$add_argument("--output")
@@ -29,9 +28,6 @@ args <- parser$parse_args()
 
 docs <- read_parquet(args$input) %>% rename(pg=pageno)
 tagger <- udpipe_load_model(file=args$tagger)
-index <- read_delim(args$index, delim="|", na="",
-                    col_types = cols(.default=col_character())) %>%
-    mutate(fileid = str_sub(filesha1, 1, 7))
 roster <- readr::read_csv("input/roster.csv",
                 col_types = cols(.default=col_character())) %>%
     distinct(uid, last_name, middle_name, middle_initial, first_name)
