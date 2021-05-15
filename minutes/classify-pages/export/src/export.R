@@ -27,7 +27,7 @@ labs <- read_parquet(args$pagetypes)
 
 docids <- labs %>%
     arrange(fileid, pageno) %>%
-    mutate(newdoc = pageno == 1 | pagetype != "continue") %>%
+    mutate(newdoc = pageno == 1 | pagetype != "continuation") %>%
     group_by(fileid) %>%
     mutate(docseqid = cumsum(newdoc)) %>%
     group_by(fileid, docseqid) %>%

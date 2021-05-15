@@ -31,30 +31,35 @@ minlines <- minutes %>%
     mutate(text = str_replace_all(text, "(\\n\\s*){3,}", "\\n\\n")) %>%
     mutate(text=str_split(text, "\n")) %>%
     unnest(text) %>%
-    mutate(text = str_trim(str_squish(text))) %>%
-    filter(text != "") %>%
+    filter(str_trim(text) != "") %>%
     group_by(fileid, pageno) %>%
     mutate(lineno = seq_along(text)) %>% ungroup
 # }}}
 
 # features{{{
-hdr_pagenos <- minlines %>%
-    filter(lineno <= 3) %>%
-    filter(str_detect(tolower(str_squish(text)), "page [2-9]")) %>%
-    distinct(fileid, pageno, re_contpage=TRUE)
-
+pagenos <- minlines %>%
+    group_by(fileid, pageno) %>%
+    mutate(text = str_squish(text) %>% str_to_lower,
+           hd = lineno <= 3, ft = lineno == max(lineno)) %>%
+    filter(hd | ft) %>%
+    mutate(
+        re_frontpage_1 = str_detect(text, "page 1$"),
+        re_frontpage_2 = ft & str_detect(text, "^1$"),
+        re_contpage_1 = str_detect(text, "page ([2-9])|(1[0-9])"),
+        re_contpage_2 = ft & str_detect(text, "^([2-9])|(1[0-9])$"),
+    ) %>%
+    summarise(across(starts_with("re_"), max), .groups="drop")
 
 hdr_feats <- minlines %>%
-    filter(lineno <= 3) %>%
-    mutate(map_dfc(regexes, ~str_detect(text, .))) %>%
+    filter(lineno <= 8) %>%
+    mutate(map_dfc(regexes, ~str_detect(str_trim(str_squish(text)), .))) %>%
     pivot_longer(cols=starts_with("re_"),
                  names_to="matchname",
                  values_to="value") %>%
     group_by(f_region, fileid, pageno, matchname) %>%
     summarise(value = any(value), .groups="drop")
-# }}}
 
-all_feats <- hdr_feats %>%
+all_marg_feats <- hdr_feats %>%
     mutate(re_region = str_match(matchname, "^re_(.+)_[^_]+_[0-9]+$")[,2]) %>%
     transmute(fileid, pageno, matchname,
               outvalue = case_when(
@@ -63,11 +68,28 @@ all_feats <- hdr_feats %>%
                   TRUE                  ~ FALSE)) %>%
     mutate(outvalue=as.integer(outvalue)) %>%
     pivot_wider(names_from=matchname, values_from=outvalue) %>%
-    left_join(hdr_pagenos, by=c("fileid", "pageno"))
+    left_join(pagenos, by=c("fileid", "pageno"))
+
+oth_feats <- minlines %>%
+    group_by(fileid, pageno) %>%
+    mutate(re_slidell_agd_0 = f_region == "slidell" &
+               str_detect(str_squish(text), "^MEETING AGENDA$"),
+           re_slidell_mtg_9 = f_region == "slidell" &
+               str_detect(str_squish(text), "^Board Members (Present)|(Absent)"),
+           re_kenner_hrg_0 = f_region == "kenner" & lineno < 6 &
+               str_detect(text, "^HEARING OF APPEAL$") &
+               str_detect(lag(text), "^CIVIL SERVICE BOARD"),
+           re_kenner_agd_0 = f_region == "kenner" &
+               str_detect(text, "^AGENDA$") &
+               str_detect(lag(text), "^REGULAR MEETING")) %>%
+    summarise(across(starts_with("re_"), max), .groups="drop")
+
+# }}}
 
 out <- minutes %>%
     select(fileid, starts_with("f_"), pageno, label, labeled) %>%
-    inner_join(all_feats, by=c("fileid", "pageno"))
+    inner_join(all_marg_feats, by=c("fileid", "pageno")) %>%
+    inner_join(oth_feats, by=c("fileid", "pageno"))
 
 stopifnot(nrow(out) == nrow(minutes))
 

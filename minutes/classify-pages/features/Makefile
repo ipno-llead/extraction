@@ -15,7 +15,7 @@ all: output/features.parquet
 clean: 
 	-rm -r output/*
 
-output/features.parquet: src/mins-feats.R $(input)
+output/features.parquet: src/mins-feats.R $(input) $(regex)
 	-mkdir output
 	Rscript --vanilla $< \
 		--input=$(input) \

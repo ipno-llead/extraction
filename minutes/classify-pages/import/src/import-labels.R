@@ -7,7 +7,6 @@
 pacman::p_load(
     argparse,
     arrow,
-    assertr,
     dplyr,
     logger,
     purrr,
@@ -32,11 +31,16 @@ clean_label <- function(label) {
 labs <- list.files(args$inputdir, full.names=TRUE) %>%
     set_names %>%
     map_dfr(read_xlsx, .id="labeler") %>%
-    filter(is.na(notes) | ! notes %in% c("drop", "agenda"))
+    mutate(label=clean_label(label)) %>%
+    mutate(label = case_when(
+                notes == "drop" ~ "other",
+                notes == "agenda" ~ "agenda",
+                label > 0 ~ "front",
+                label == 0 ~ "continuation",
+                TRUE ~ "other"))
 
-labs %>% mutate(label=clean_label(label)) %>%
+labs %>%
     select(fileid, pg, label) %>%
-    verify(label %in% c(1L, 0L)) %>%
     write_parquet(args$output)
 
 # done.

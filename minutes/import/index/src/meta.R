@@ -83,7 +83,7 @@ out <- ind %>%
     mutate(file_category = case_when(
             dtct(fn, "minutes")           ~ "minutes",
             dtct(fn, "meeting min")       ~ "minutes",
-            dtct(fn, "cs board mtg")      ~ "minutes",
+            #             dtct(fn, "cs board mtg")      ~ "minutes",
             dtct(fn, "fpcsb_mprr")        ~ "minutes",
             dtct(fn, "mpecsbm")           ~ "minutes",
             dtct(fn, "transcript")        ~ "transcript",
