@@ -83,7 +83,7 @@ ebr <- ebr_chunks %>%
         hearing & chunk_title == text ~ "hearing_header",
         hearing ~ "hearing",
         docpg == 1 & chunkno <= 4 ~ "meeting_header",
-        docpg == 1 & str_detect(chunk_title, "ROLL CALL") ~ "meeting_header",
+        docpg == 1 & str_detect(chunk_title, "ROLL CALL") ~ "other",
         docpg == 1 & chunkno < 10 &
             str_detect(text, "^BATON ROUGE") ~ "meeting_header",
         docpg == 1 & chunkno < 10 &
@@ -206,7 +206,15 @@ knr <- knr_mtgs %>%
 # }}}
 
 classes <- bind_rows(ww, ebr, la, mv, sl, knr_hearing, knr) %>%
-    select(docid, docpg, lineno, linetype)
+    select(docid, docpg, lineno, linetype) %>%
+    arrange(docid, docpg, lineno) %>%
+    group_by(docid, docpg) %>%
+    mutate(tofill = lead(linetype) == "hearing_header" &
+           lag(linetype) == "hearing_header" &
+           linetype != "hearing_header") %>% ungroup %>%
+    replace_na(list(tofill = FALSE)) %>%
+    mutate(linetype = if_else(tofill, "hearing_header", linetype))
+
 
 out <- doclines %>%
     inner_join(classes, by = c("docid", "docpg", "lineno"))
