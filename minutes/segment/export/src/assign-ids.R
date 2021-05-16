@@ -38,7 +38,7 @@ log_info(distinct(hearing_numbers, docid, hrgno) %>% nrow,
 
 out <- docs %>%
     left_join(hearing_numbers,
-              by = c("docid", "docpg", "lineno", "hrgno")) %>%
+              by = c("docid", "docpg", "lineno")) %>%
     arrange(docid, docpg, lineno)
 
 log_info("# of hearings identified by jurisdiction: ")

@@ -24,7 +24,10 @@ args <- parser$parse_args()
 
 mins <- read_parquet(args$text)
 meta <- read_delim(args$meta, delim="|", na="",
-                   col_types=cols(.default=col_character()))
+                   col_types = cols(.default = col_character(),
+                                    year = col_integer(),
+                                    month = col_integer(),
+                                    day = col_integer()))
 meta <- select(meta, fileid, f_cat=file_category,
                f_region=region, f_year=year, f_month=month, f_day=day)
 

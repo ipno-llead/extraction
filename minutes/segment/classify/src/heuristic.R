@@ -213,7 +213,8 @@ classes <- bind_rows(ww, ebr, la, mv, sl, knr_hearing, knr) %>%
            lag(linetype) == "hearing_header" &
            linetype != "hearing_header") %>% ungroup %>%
     replace_na(list(tofill = FALSE)) %>%
-    mutate(linetype = if_else(tofill, "hearing_header", linetype))
+    mutate(linetype = if_else(tofill, "hearing_header", linetype)) %>%
+    select(-tofill)
 
 
 out <- doclines %>%
