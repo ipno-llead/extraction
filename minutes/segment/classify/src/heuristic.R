@@ -159,10 +159,10 @@ sl <- sl_chunks %>%
     left_join(sl_hrg_flg, by = c("docid", "chunkno")) %>%
     replace_na(list(hearing = FALSE)) %>%
     mutate(linetype = case_when(
-        hearing && chunk_title == text ~ "hearing_header",
+        hearing & chunk_title == text ~ "hearing_header",
         hearing ~ "hearing",
         TRUE ~ "other")) %>%
-    distinct(fileid, pageno, docid, docpg, linetype)
+    distinct(fileid, pageno, docid, docpg, lineno, linetype)
 
 # }}}
 
@@ -185,8 +185,20 @@ knr_mtgs <- doclines %>%
     filter(f_region == "kenner", doctype == "meeting") %>%
     chunk(pattern = "^AGENDA ITEM")
 
-knr_hrg_flg <- knr_mtgs %>%
-    filter(!str_detect(text, "[a-z]")) %>%
+knr_hrg_headers <- knr_mtgs %>%
+    arrange(docid, docpg, lineno) %>%
+    filter(chunkno >= 1) %>%
+    mutate(sec_brk = !allcaps(text)) %>%
+    group_by(docid, chunkno) %>%
+    mutate(index = cumsum(sec_brk)) %>%
+    ungroup %>%
+    filter(index == 0)
+
+knr_hrg_head_lines <- knr_hrg_headers %>%
+    distinct(docid, docpg, lineno, header=TRUE)
+
+knr_hrg_flg <- knr_hrg_headers %>%
+    distinct(docid, chunkno, lineno, text, header = TRUE) %>%
     group_by(docid, chunkno) %>%
     filter(any(str_detect(text, "APPEAL"))) %>%
     ungroup %>%
@@ -194,9 +206,10 @@ knr_hrg_flg <- knr_mtgs %>%
 
 knr <- knr_mtgs %>%
     left_join(knr_hrg_flg, by = c("docid", "chunkno")) %>%
-    replace_na(list(hearing = FALSE)) %>%
+    left_join(knr_hrg_head_lines, by = c("docid", "docpg", "lineno")) %>%
+    replace_na(list(hearing = FALSE, header = FALSE)) %>%
     mutate(linetype = case_when(
-        hearing & allcaps(text) ~ "hearing_header",
+        hearing & header ~ "hearing_header",
         hearing & str_detect(text, "^Appellant (is)|(was) employed by") ~ "hearing_header",
         hearing ~ "hearing",
         docpg == 1 & chunkno == 0 ~ "meeting_header",
