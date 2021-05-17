@@ -40,11 +40,16 @@ hrgs <- docs %>%
     select(docid, hrgno, hrg_head = hearing_header, hrg_text = hearing)
 
 doc_xref <- docs %>% group_by(docid) %>%
-    mutate(doc_pg_from = min(pageno), doc_pg_to = max(pageno)) %>%
+    mutate(fileid = unique(fileid),
+           jurisdiction = unique(f_region),
+           doc_pg_from = min(pageno),
+           doc_pg_to = max(pageno)) %>%
     group_by(docid, hrgno) %>%
     mutate(hrg_pg_from = min(pageno), hrg_pg_to = max(pageno)) %>%
     ungroup %>%
-    distinct(docid, hrgno, doc_pg_from, doc_pg_to, hrg_pg_from, hrg_pg_to) %>%
+    distinct(docid, fileid, jurisdiction,
+             doc_pg_from, doc_pg_to,
+             hrgno, hrg_pg_from, hrg_pg_to) %>%
     filter(!is.na(hrgno))
 # }}}
 
@@ -53,7 +58,10 @@ out <- doc_xref %>%
     left_join(hrg_tp, by = c("docid", "hrgno")) %>%
     left_join(hrg_acc, by = c("docid", "hrgno")) %>%
     left_join(hrgs, by = c("docid", "hrgno")) %>%
-    select(docid, hrgno, starts_with("mtg_"),
+    select(docid, fileid, jurisdiction,
+           starts_with("doc_"),
+           starts_with("mtg_"),
+           hrgno,
            starts_with("hrg_"))
 
 write_parquet(out, args$output)
