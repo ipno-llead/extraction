@@ -47,7 +47,7 @@ out <- hearings %>%
     mutate(hrg_type = case_when(
         police & !fire ~ "police",
         fire & !police ~ "fire",
-        TRUE ~ "unknown"))
+        TRUE ~ "unknown")) %>% select(docid, hrgno, hrg_type)
 # }}}
 
 log_info("breakdown: ")

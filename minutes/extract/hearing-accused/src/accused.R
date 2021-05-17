@@ -47,9 +47,9 @@ accused <- hearings %>%
     mutate(map_dfc(re, ~smartmatch(text, .))) %>%
     pivot_longer(cols = starts_with("re_"),
                  names_to = "regex",
-                 values_to = "accused") %>%
-    filter(!is.na(accused)) %>%
-    distinct(docid, hrgno, accused)
+                 values_to = "hrg_accused") %>%
+    filter(!is.na(hrg_accused)) %>%
+    distinct(docid, hrgno, hrg_accused)
 
 log_info(distinct(accused, docid, hrgno) %>% nrow,
          " hearings with accused name identified and extracted")
