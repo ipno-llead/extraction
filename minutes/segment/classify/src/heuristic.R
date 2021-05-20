@@ -82,8 +82,8 @@ ebr <- ebr_chunks %>%
     mutate(linetype = case_when(
         hearing & chunk_title == text ~ "hearing_header",
         hearing ~ "hearing",
-        docpg == 1 & chunkno <= 4 ~ "meeting_header",
         docpg == 1 & str_detect(chunk_title, "ROLL CALL") ~ "other",
+        docpg == 1 & chunkno <= 4 ~ "meeting_header",
         docpg == 1 & chunkno < 10 &
             str_detect(text, "^BATON ROUGE") ~ "meeting_header",
         docpg == 1 & chunkno < 10 &
@@ -178,7 +178,7 @@ knr_hearing <- doclines %>%
         str_detect(lag(text), "^Appellant (is)|(was) employed by") ~ "hearing",
         TRUE ~ NA_character_)) %>%
     group_by(docid) %>% fill(linetype, .direction = "down") %>% ungroup %>%
-    replace_na(list(linetype = "page_header")) %>%
+    replace_na(list(linetype = "meeting_header")) %>%
     distinct(fileid, pageno, docid, docpg, lineno, linetype)
 
 knr_mtgs <- doclines %>%
