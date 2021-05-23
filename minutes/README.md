@@ -19,35 +19,35 @@ The `eda` task is for experimental code, and is not part of the data pipeline.
 ```bash
 ~/git/US-IP-NO/extraction/minutes
 @ butterfly (0): find . -name Makefile | tree --fromfile -d
->> .
->> └── .
->>     ├── classify-pages
->>     │   ├── classify
->>     │   ├── export
->>     │   ├── features
->>     │   ├── import
->>     │   └── sample
->>     ├── eda
->>     ├── export
->>     ├── extract
->>     │   ├── classify-hearings
->>     │   ├── export
->>     │   ├── hearing-accused
->>     │   ├── import
->>     │   ├── meeting-dates
->>     │   └── merge
->>     ├── import
->>     │   ├── dl-dropbox
->>     │   ├── export
->>     │   ├── index
->>     │   └── ocr
->>     └── segment
->>         ├── classify
->>         ├── export
->>         ├── import
->>         └── sample
->> 
->> 26 directories
+## .
+## └── .
+##     ├── classify-pages
+##     │   ├── classify
+##     │   ├── export
+##     │   ├── features
+##     │   ├── import
+##     │   └── sample
+##     ├── eda
+##     ├── export
+##     ├── extract
+##     │   ├── classify-hearings
+##     │   ├── export
+##     │   ├── hearing-accused
+##     │   ├── import
+##     │   ├── meeting-dates
+##     │   └── merge
+##     ├── import
+##     │   ├── dl-dropbox
+##     │   ├── export
+##     │   ├── index
+##     │   └── ocr
+##     └── segment
+##         ├── classify
+##         ├── export
+##         ├── import
+##         └── sample
+## 
+## 26 directories
 ```
 
 In order to update all extraction code, just run `make`. That will run the
@@ -56,12 +56,12 @@ associated subtasks in order, starting with `import` and ending with `export`:
 ```bash
 ~/git/US-IP-NO/extraction/minutes
 @ butterfly (0): make
->> cd import && make
->> cd dl-dropbox && make
->> make[2]: Nothing to be done for `all'.
->> ...snip...
->> cd export && make
->> make[1]: Nothing to be done for `all'.
+## cd import && make
+## cd dl-dropbox && make
+## make[2]: Nothing to be done for `all'.
+## ...snip...
+## cd export && make
+## make[1]: Nothing to be done for `all'.
 ```
 
 You can update just one step at a time by running `make` for that task:
@@ -69,14 +69,14 @@ You can update just one step at a time by running `make` for that task:
 ```bash
 ~/git/US-IP-NO/extraction/minutes
 @ butterfly (0): cd classify-pages && make
->> cd import && make
->> make[1]: Nothing to be done for `all'.
->> cd features && make
->> make[1]: Nothing to be done for `all'.
->> cd classify && make
->> make[1]: Nothing to be done for `all'.
->> cd export && make
->> make[1]: Nothing to be done for `all'.
+## cd import && make
+## make[1]: Nothing to be done for `all'.
+## cd features && make
+## make[1]: Nothing to be done for `all'.
+## cd classify && make
+## make[1]: Nothing to be done for `all'.
+## cd export && make
+## make[1]: Nothing to be done for `all'.
 ```
 
 A task without any sub-tasks will have a directory named `output` containing
@@ -89,42 +89,42 @@ identifiers and extracts metadata from filenames, and converts file contents to
 lines of text (currently by OCR-ing the PDF files, but soon to also convert
 Word files, see issue #5).
 
-```
+```bash
 ~/git/US-IP-NO/extraction/minutes
 @ butterfly (0): ls import/export/output/
->> metadata.csv  minutes.parquet
+## metadata.csv  minutes.parquet
 
 ~/git/US-IP-NO/extraction/minutes
 @ butterfly (0): head import/export/output/metadata.csv | head -1 | tr '|' '\n'
->> fileid
->> region
->> year
->> month
->> day
->> file_category
->> npages
->> filepath
->> filesha1
->> db_id
->> db_path
->> db_content_hash
+## fileid
+## region
+## year
+## month
+## day
+## file_category
+## npages
+## filepath
+## filesha1
+## db_id
+## db_path
+## db_content_hash
 ```
 
 Note that `year`, `month`, `day`, and `file_category` are inferred based on the
 file name. The file categories:
 
-```
+```bash
 ~/git/US-IP-NO/extraction/minutes
 @ butterfly (0): cut import/export/output/metadata.csv -d'|' -f6 | \
     sort | \
     uniq -c | \
     sort
->>       1 file_category
->>       4 memo
->>       7 transcript
->>      24 other
->>      56 agenda
->>     289 minutes
+##       1 file_category
+##       4 memo
+##       7 transcript
+##      24 other
+##      56 agenda
+##     289 minutes
 ```
 
 Currently, we're only doing data extraction from the `minutes` file types. For
@@ -153,28 +153,28 @@ data. The `segment/sample` task does the sampling, and outputs a file called
 of label-able Excel files. `segment/sample` is not run by default, but can be
 run explicitly via `make sample`:
 
-```
+```bash
 ~/git/US-IP-NO/extraction/minutes/segment
 @ butterfly (0): cd sample
 
 ~/git/US-IP-NO/extraction/minutes/segment
 @ butterfly (0): tree -d sample
->> sample
->> └── src
->> 
->> 1 directory, 3 files
+## sample
+## └── src
+## 
+## 1 directory, 3 files
 
 ~/git/US-IP-NO/extraction/minutes/segment
 @ butterfly (0): make sample
->> cd import && make
->> ...snip...
+## cd import && make
+## ...snip...
 
 ~/git/US-IP-NO/extraction/minutes/segment
 @ butterfly (0): tree -d sample
->> sample
->> ├── output
->> │   └── training-data
->> └── src
+## sample
+## ├── output
+## │   └── training-data
+## └── src
 ```
 
 ## `extract`
@@ -183,14 +183,14 @@ run explicitly via `make sample`:
 `extract/export/output/docs` contains extracted hearings organized as one
 hearing per text file. Hearings are classified as `police`, `fire`, or `other`:
 
-```
+```bash
 @ butterfly (0): find extract/export/output/docs -iname *.txt | head -3
->> extract/export/output/docs/fire/bd4fb321-001.txt
->> extract/export/output/docs/fire/9d782bad-002.txt
->> extract/export/output/docs/fire/72656aef-001.txt
+## extract/export/output/docs/fire/bd4fb321-001.txt
+## extract/export/output/docs/fire/9d782bad-002.txt
+## extract/export/output/docs/fire/72656aef-001.txt
 
 @ butterfly (0): find extract/export/output/docs -iname *.txt | cut -d'/' -f5 | sort | uniq -c
->>     163 fire
->>      92 police
->>     106 unknown
+##     163 fire
+##      92 police
+##     106 unknown
 ```
