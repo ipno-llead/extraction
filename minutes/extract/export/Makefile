@@ -3,20 +3,23 @@
 # Copyright:   2021, HRDAG, GPL v2 or later
 # =========================================
 
-.PHONY: all clean
+input := ../merge/output/hearings.parquet
+meta := ../import/output/metadata.csv
+output := output/all-hearings.xlsx
+src := src/doc2txt.R
 
-input := ../features/output/features.parquet
-output := output/pagetypes.parquet
+.PHONY: all clean
 
 all: $(output)
 
 clean: 
 	-rm -r output/*
 
-$(output): src/heuristic.R $(input)
+$(output): $(src) $(input) $(meta)
 	-mkdir output
 	Rscript --vanilla $< \
 		--input=$(input) \
-		--output=$@ &> output/log.txt
+		--meta=$(meta) \
+		--output=$@
 
 # done.

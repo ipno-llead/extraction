@@ -20,6 +20,6 @@ $(output): $(src) $(input) $(regexes)
 	Rscript --vanilla $< \
 		--input=$(input) \
 		--regexes=$(regexes) \
-		--output=$@
+		--output=$@ &> output/log.txt
 
 # done.

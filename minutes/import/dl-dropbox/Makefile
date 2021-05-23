@@ -16,7 +16,7 @@ wwgo_out_path := output/westwego/fpcsb
 viv_db_path := PPACT/data/Caddo Parish/Data Collected/Vivian/Vivian Town Council
 viv_out_path := output/vivian/vtc
 
-la_db_path := PPACT/data/Louisiana State/Louisiana State Police Commission/Data Collected/Minutes
+la_db_path := PPACT/data/Louisiana State/Data Collected/Louisiana State Police Commission/Data Collected/Minutes
 la_out_path := output/louisiana_state/lspc
 
 sldl_db_path := PPACT/data/St. Tammany/Data Collected/Slidell/Slidell Civil Service Board

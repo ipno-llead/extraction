@@ -1,5 +1,10 @@
 # vim: set ts=4 sts=0 sw=4 si fenc=utf-8 et:
 # vim: set fdm=marker fmr={{{,}}} fdl=0 foldcolumn=4:
+# Authors:     TS
+# Maintainers: TS
+# Copyright:   2021, HRDAG, GPL v2 or later
+# =========================================
+
 
 # front {{{
 pacman::p_load(
@@ -9,12 +14,14 @@ pacman::p_load(
     jsonlite,
     purrr,
     readr,
+    writexl,
     stringr
 )
 
 parser <- ArgumentParser()
 parser$add_argument("--input", default = "../merge/output/hearings.parquet")
 parser$add_argument("--meta", default = "../import/output/metadata.csv")
+parser$add_argument("--output")
 args <- parser$parse_args()
 # }}}
 
@@ -66,9 +73,15 @@ rptout <- function(doc) {
     cat("============", "\n")
     cat(doc$hrg_text)
     cat("\n")
+    return(doc)
 }
 
 # }}}
 
-pmap(docs, list) %>%
-    map(rptout)
+out <- pmap(docs, list) %>%
+    map(rptout) %>%
+    map_dfr(as_tibble)
+
+write_xlsx(out, args$output)
+
+# done.
