@@ -95,7 +95,7 @@ Word files, see issue #5).
 ## metadata.csv  minutes.parquet
 
 ~/git/US-IP-NO/extraction/minutes
-@ butterfly (0): head import/export/output/metadata.csv | head -1 | tr '|' '\n'
+@ butterfly (0): head -1 import/export/output/metadata.csv | tr '|' '\n'
 ## fileid
 ## region
 ## year
@@ -155,9 +155,6 @@ run explicitly via `make sample`:
 
 ```bash
 ~/git/US-IP-NO/extraction/minutes/segment
-@ butterfly (0): cd sample
-
-~/git/US-IP-NO/extraction/minutes/segment
 @ butterfly (0): tree -d sample
 ## sample
 ## └── src
@@ -184,12 +181,13 @@ run explicitly via `make sample`:
 hearing per text file. Hearings are classified as `police`, `fire`, or `other`:
 
 ```bash
-@ butterfly (0): find extract/export/output/docs -iname *.txt | head -3
-## extract/export/output/docs/fire/bd4fb321-001.txt
-## extract/export/output/docs/fire/9d782bad-002.txt
-## extract/export/output/docs/fire/72656aef-001.txt
+@ butterfly (0): find extract/export/output/docs -iname *.txt | shuf | head -3
+## extract/export/output/docs/fire/ef2edc35-001.txt
+## extract/export/output/docs/police/ac4fcafe-001.txt
+## extract/export/output/docs/fire/530fd26b-002.txt
 
-@ butterfly (0): find extract/export/output/docs -iname *.txt | cut -d'/' -f5 | sort | uniq -c
+@ butterfly (0): find extract/export/output/docs -iname *.txt | \
+    cut -d'/' -f5 | sort | uniq -c
 ##     163 fire
 ##      92 police
 ##     106 unknown
