@@ -17,7 +17,10 @@ hearing-accused: import
 classify-hearings: import
 	cd $@ && make
 
-merge: meeting-dates hearing-accused classify-hearings
+accused-uid: import hearing-accused classify-hearings meeting-dates 
+	cd $@ && make
+
+merge: meeting-dates accused-uid classify-hearings
 	cd $@ && make
 
 export: merge

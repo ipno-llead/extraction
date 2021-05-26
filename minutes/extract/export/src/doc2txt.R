@@ -63,7 +63,7 @@ rptout <- function(doc) {
     cat("hearing #:", doc$hrgno, "\n")
     cat("hearing pages: ", doc$hrg_pg_from, "-", doc$hrg_pg_to, "\n", sep="")
     cat("hearing type:", doc$hrg_type, "\n")
-    cat("accused: ", doc$hrg_accused, "\n", sep="")
+    cat("accused: ", doc$hrg_accused, " (", doc$hrg_acc_uid ,")", "\n", sep="")
     cat("\n\n")
     cat("HEARING HEADER", "\n")
     cat("==============", "\n")

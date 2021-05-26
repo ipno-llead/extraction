@@ -16,10 +16,10 @@ pacman::p_load(
 
 # args {{{
 parser <- ArgumentParser()
-parser$add_argument("--meetings", default = "../import/output/minutes.parquet")
-parser$add_argument("--dates", default = "../meeting-dates/output/mtg-dates.parquet")
-parser$add_argument("--hearingtypes", default = "../classify-hearings/output/hrg-class.parquet")
-parser$add_argument("--accused", default = "../hearing-accused/output/hrg-accused.parquet")
+parser$add_argument("--meetings")
+parser$add_argument("--dates")
+parser$add_argument("--hearingtypes")
+parser$add_argument("--accused")
 parser$add_argument("--output")
 args <- parser$parse_args()
 # }}}

@@ -6,7 +6,7 @@
 meetings := ../import/output/minutes.parquet
 dates := ../meeting-dates/output/mtg-dates.parquet
 hearingtypes := ../classify-hearings/output/hrg-class.parquet
-accused := ../hearing-accused/output/hrg-accused.parquet
+accused := ../accused-uid/output/hrg-accused-uid.parquet
 
 output := output/hearings.parquet
 src := src/meetings-hearings.R
