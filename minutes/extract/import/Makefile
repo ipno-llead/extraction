@@ -16,15 +16,18 @@ output_mins := output/minutes.parquet
 output_meta := output/metadata.csv
 output_roster := output/roster.parquet
 
-.PHONY: all clean
+.PHONY: all clean force
 
 all: $(output_mins) $(output_meta) $(output_roster)
 
 clean: 
 	-rm -r output/*
 
-output/working/%.csv: $(wrgl_creds) $(input_mins)
-	-mkdir output/working
+# force roster updates from wrgl
+force: ;
+
+output/working/%.csv: force
+	-mkdir -p output/working
 	set -o allexport; source $(wrgl_creds); set +o allexport
 	$(wrglctl) login --apikey=${WRGL_APIKEY}
 	$(wrglctl) repos pull @ipno/$* $@
