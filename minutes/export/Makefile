@@ -7,17 +7,28 @@ hrgs := ../extract/export/output/hearings.parquet
 meta := ../import/export/output/metadata.csv
 docs := ../classify-pages/export/output/minutes.parquet
 
+wrglctl := bin/wrglctl
+wrgl_creds := frozen/wrgl-creds.txt
+
 pdf_index := output/pdf-index.parquet
 db_index := output/db-index.parquet
 
 output := output/documents.csv
 
-.PHONY: all clean pdfs
+.PHONY: all clean pdfs wrgl
 
-all: $(output)
+all: wrgl
 
 clean: 
 	-rm -r output/*
+
+wrgl: $(wrgl_creds) $(output)
+	set -o allexport; source $(wrgl_creds); set +o allexport
+	$(wrglctl) login --apikey=${WRGL_APIKEY}
+	$(wrglctl) repos commit $(output) \
+		@ipno/documents \
+		"updated" \
+		-p "docid,hrg_no,matched_uid"
 
 $(output): src/merge-doctxt.R $(db_index) $(hrgs) $(docs)
 	Rscript --vanilla $< \
