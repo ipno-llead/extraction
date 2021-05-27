@@ -22,7 +22,7 @@ la_out_path := output/louisiana_state/lspc
 sldl_db_path := PPACT/data/St. Tammany/Data Collected/Slidell/Slidell Civil Service Board
 sldl_out_path := output/slidell/scsb
 
-token := frozen/auth-token.rds
+token := ../../../share/creds/dropbox-auth-token.rds
 
 .PHONY: all clean
 

@@ -9,8 +9,8 @@ input_meta := ../../import/export/output/metadata.csv
 input_personnel := output/working/personnel.csv
 input_event := output/working/event.csv
 
-wrglctl := bin/wrglctl
-wrgl_creds := frozen/wrgl-creds.txt
+wrglctl := ../../../share/bin/wrglctl
+wrgl_creds := ../../../share/creds/wrgl-creds.txt
 
 output_mins := output/minutes.parquet
 output_meta := output/metadata.csv

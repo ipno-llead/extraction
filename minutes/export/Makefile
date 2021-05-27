@@ -7,8 +7,10 @@ hrgs := ../extract/export/output/hearings.parquet
 meta := ../import/export/output/metadata.csv
 docs := ../classify-pages/export/output/minutes.parquet
 
-wrglctl := bin/wrglctl
-wrgl_creds := frozen/wrgl-creds.txt
+wrglctl := ../../share/bin/wrglctl
+wrgl_creds := ../../share/creds/wrgl-creds.txt
+
+db_token := ../../share/creds/dropbox-auth-token.rds
 
 pdf_index := output/pdf-index.parquet
 db_index := output/db-index.parquet
@@ -37,10 +39,10 @@ $(output): src/merge-doctxt.R $(db_index) $(hrgs) $(docs)
 		--docs=$(docs) \
 		--output=$@
 
-$(db_index): src/dropbox-up.R $(pdf_index) frozen/auth-token.rds
+$(db_index): src/dropbox-up.R $(pdf_index) $(db_token)
 	Rscript --vanilla $< \
 		--index=$(pdf_index) \
-		--token=frozen/auth-token.rds \
+		--token=$(db_token) \
 		--dbpath="/ppact/meeting-minutes-extraction/export/pdfs" \
 		--output=$@
 
