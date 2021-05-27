@@ -4,7 +4,9 @@
 # =========================================
 
 input := ../merge/output/hearings.parquet
-output := output/hearings.parquet
+meta := ../import/output/metadata.csv
+output := output/all-hearings.xlsx
+src := src/doc2txt.R
 
 .PHONY: all clean
 
@@ -13,6 +15,11 @@ all: $(output)
 clean: 
 	-rm -r output/*
 
-$(output): $(src) $(input)
+$(output): $(src) $(input) $(meta)
 	-mkdir output
-	cd output && ln -s ../$(input) .
+	Rscript --vanilla $< \
+		--input=$(input) \
+		--meta=$(meta) \
+		--output=$@
+
+# done.
