@@ -1,7 +1,16 @@
+# Authors:     TS
+# Maintainers: TS
+# Copyright:   2021, HRDAG, GPL v2 or later
+# =========================================
+
 input_mins := ../../segment/export/output/minutes.parquet
 input_meta := ../../import/export/output/metadata.csv
-input_personnel := input/personnel.csv
-input_event := input/event.csv
+
+input_personnel := output/working/personnel.csv
+input_event := output/working/event.csv
+
+wrglctl := bin/wrglctl
+wrgl_creds := frozen/wrgl-creds.txt
 
 output_mins := output/minutes.parquet
 output_meta := output/metadata.csv
@@ -13,6 +22,12 @@ all: $(output_mins) $(output_meta) $(output_roster)
 
 clean: 
 	-rm -r output/*
+
+output/working/%.csv: $(wrgl_creds) $(input_mins)
+	-mkdir output/working
+	set -o allexport; source $(wrgl_creds); set +o allexport
+	$(wrglctl) login --apikey=${WRGL_APIKEY}
+	$(wrglctl) repos pull @ipno/$* $@
 
 $(output_mins): $(input_mins)
 	-mkdir output

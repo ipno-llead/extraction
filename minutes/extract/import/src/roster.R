@@ -14,8 +14,8 @@ pacman::p_load(
 
 # args {{{
 parser <- ArgumentParser()
-parser$add_argument("--personnel", default = "input/personnel.csv")
-parser$add_argument("--event", default = "input/event.csv")
+parser$add_argument("--personnel", default = "output/working/personnel.csv")
+parser$add_argument("--event", default = "output/working/event.csv")
 parser$add_argument("--output")
 args <- parser$parse_args()
 # }}}
