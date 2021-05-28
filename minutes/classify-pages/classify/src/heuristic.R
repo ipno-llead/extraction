@@ -9,6 +9,7 @@ pacman::p_load(
     argparse,
     arrow,
     dplyr,
+    logger,
     stringr,
     tidyr
 )
@@ -42,9 +43,16 @@ out <- feats %>%
     left_join(heur, by=c("fileid", "pageno")) %>%
     replace_na(list(pagetype="continuation"))
 
+log_info("performance on labeled data")
 out %>%
     inner_join(labs, by=c("fileid", "pageno")) %>%
     count(pagetype, label) %>% print
+
+log_info("summary by jurisdiction")
+distinct(feats, fileid, pageno, f_region) %>%
+    inner_join(out, by = c("fileid", "pageno")) %>%
+    count(f_region, pagetype) %>%
+    pivot_wider(names_from = pagetype, values_from = n, values_fill = 0L)
 
 write_parquet(out, args$output)
 

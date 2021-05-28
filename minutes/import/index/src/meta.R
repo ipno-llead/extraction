@@ -92,9 +92,13 @@ out <- ind %>%
             dtct(fn, "transcript")        ~ "transcript",
             dtct(fn, "v\\.? city of")     ~ "transcript",
             dtct(fn, "city of [^\\s]+ v") ~ "transcript",
-            region == "orleans" & dtct(fn, "^[A-Z][a-z]+,") ~ "transcript",
+            dtct(fn, "cancelled") ~ "cancelled",
+            region == "addis"             ~ "minutes",
             dtct(fn, "agenda")            ~ "agenda",
             dtct(fn, "memo")              ~ "memo",
+            region == "orleans" & dtct(fn, "^[A-Z][a-z]+,") ~ "transcript",
+            region == "orleans" & dtct(fn, "dates") ~ "dates",
+            region == "orleans"           ~ "memo",
             TRUE ~ "other")) %>%
     left_join(dates, by = c(filename="orig")) %>%
     select(fileid, filetype, region, year, month, day,
