@@ -41,15 +41,7 @@ chunk <- function(lns, pattern) {
 }
 # }}}
 
-docs <- read_parquet(args$input)
-
-doclines <- docs %>%
-    arrange(fileid, pageno) %>%
-    group_by(docid) %>% mutate(docpg = seq_along(text)) %>%
-    mutate(text = str_split(text, "\n"),
-           lineno = map(text, ~seq_along(.))) %>%
-    unnest(c(text, lineno)) %>%
-    mutate(text = str_squish(text)) %>% filter(text != "") %>% ungroup
+doclines <- read_parquet(args$input)
 
 # westwego hearings{{{
 ww <- doclines %>%
