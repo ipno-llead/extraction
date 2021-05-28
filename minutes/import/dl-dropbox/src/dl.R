@@ -8,7 +8,6 @@ pacman::p_load(
     digest,
     dplyr,
     here,
-    pdftools,
     purrr,
     rdrop2,
     readr,
@@ -21,14 +20,15 @@ pacman::p_load(
 # command-line args {{{
 parser <- ArgumentParser()
 parser$add_argument("--path")
-parser$add_argument("--token", default="frozen/auth-token.rds")
+parser$add_argument("--token")
 parser$add_argument("--outdir")
 args <- parser$parse_args()
 # }}}
 
 # load data {{{
 tok <- readRDS(args$token)
-to_dl <- drop_dir(args$path)
+to_dl <- drop_dir(args$path, recursive = TRUE) %>%
+    filter(.tag == "file")
 
 # need to create shared links in order to create permalink,
 # unless there one already exists, then use that

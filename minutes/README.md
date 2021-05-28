@@ -86,8 +86,7 @@ its output. All tasks with sub-tasks have a sub-task named `export`.
 
 The `import` subtask downlaods files from dropbox, creates unique file
 identifiers and extracts metadata from filenames, and converts file contents to
-lines of text (currently by OCR-ing the PDF files, but soon to also convert
-Word files, see issue #5).
+lines of text (by OCR-ing the PDF files and converting word files to text).
 
 ```bash
 ~/git/US-IP-NO/extraction/minutes
@@ -97,6 +96,7 @@ Word files, see issue #5).
 ~/git/US-IP-NO/extraction/minutes
 @ butterfly (0): head -1 import/export/output/metadata.csv | tr '|' '\n'
 ## fileid
+## filetype
 ## region
 ## year
 ## month
@@ -121,10 +121,29 @@ file name. The file categories:
     sort
 ##       1 file_category
 ##       4 memo
-##       7 transcript
-##      24 other
-##      56 agenda
-##     289 minutes
+##      15 transcript
+##     135 other
+##     147 agenda
+##     376 minutes
+```
+
+Number of files (of all types) downloaded per region:
+
+```
+@ butterfly (0): cut import/export/output/metadata.csv -d'|' -f3 | \
+    sort | \
+    uniq -c | \
+    sort
+##       1 region
+##       1 westwego
+##       6 slidell
+##      50 mandeville
+##      56 east_baton_rouge
+##      83 addis
+##      83 louisiana_state
+##      85 vivian
+##      99 kenner
+##     214 orleans
 ```
 
 Currently, we're only doing data extraction from the `minutes` file types. For

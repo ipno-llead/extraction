@@ -36,8 +36,7 @@ index <- read_delim(args$index, delim="|", na="",
                         .default = col_character(),
                         year     = col_integer(),
                         month    = col_integer(),
-                        day      = col_integer(),
-                        npages   = col_integer()))
+                        day      = col_integer()))
 
 OCR_DPI <- args$DPI
 log_info("DPI: ", OCR_DPI)
@@ -75,8 +74,10 @@ process_pdf <- function(doc, expected_hash, npages,
 log_info("starting import (using cached xml if available)")
 
 processed <-  index %>%
+    filter(filetype == "pdf") %>%
     transmute(doc=here::here(str_replace(filepath, "^[^\\/]+/", "")),
-              expected_hash = filesha1, npages,
+              expected_hash = filesha1,
+              npages = map_int(doc, pdf_length),
               txtdir=args$txtdir, DPI=OCR_DPI) %>%
     mutate(text = pmap(., process_pdf)) %>%
     transmute(filesha1=expected_hash,

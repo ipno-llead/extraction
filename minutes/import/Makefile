@@ -1,7 +1,7 @@
 # vim: set ts=8 sts=0 sw=8 si fenc=utf-8 noet:
 # vim: set fdm=marker fmr={{{,}}} fdl=0 foldcolumn=4:
 
-.PHONY: all dl-dropbox index ocr export
+.PHONY: all dl-dropbox index ocr worddoc-text export
 
 all: export
 
@@ -14,7 +14,10 @@ index: dl-dropbox
 ocr: index
 	cd $@ && make
 
-export: ocr
+worddoc-text: index
+	cd $@ && make
+
+export: ocr worddoc-text
 	cd $@ && make
 
 # done.

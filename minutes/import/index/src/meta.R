@@ -10,6 +10,7 @@
 pacman::p_load(
     argparse,
     arrow,
+    assertr,
     dplyr,
     pdftools,
     purrr,
@@ -42,8 +43,10 @@ dateparse <- function(fn) {
     monthmap <- set_names(rep(1:12, 2), monthstrings)
     re_month <- paste0("(", monthstrings, ")", collapse="|")
     patterns <- list(
-        mdy_num  = "[0-9]{1,2} [0-9]{1,2} [0-9]{2,4}",
-        mdy_string = paste0("(",re_month, ")", " [0-9]{1,2} [0-9]{2,4}")
+        mdy_num  = "(^|[^0-9])[0-9]{1,2} [0-9]{1,2} [0-9]{2,4}",
+        mdy_string = paste0("(",re_month, ")", " [0-9]{1,2} [0-9]{2,4}"),
+        ymd_num = "[0-9]{8}",
+        ymd_num2 = "[0-9]{4} [0-9]{1,2} [0-9]{1,2}"
     )
     cln <- str_to_lower(fn) %>% str_replace_all("[^a-z0-9 ]", " ") %>% str_squish
     out <- tibble(orig=fn, cln=cln) %>%
@@ -53,19 +56,16 @@ dateparse <- function(fn) {
                      names_to="matchtype",
                      values_to="match") %>%
         filter(!is.na(match)) %>%
-        separate(match, into = c("month", "day", "year"), sep=" ") %>%
-        mutate(century = if_else(as.integer(year) < 30, "20", "19")) %>%
-        mutate(month = case_when(
-                matchtype == "mdy_string" ~ monthmap[month],
-                matchtype == "mdy_num" ~ as.integer(month),
-                TRUE ~ NA_integer_),
-               day = as.integer(day),
-               year = case_when(
-                str_length(year) == 4 ~ as.integer(year),
-                str_length(year) == 2 ~ as.integer(paste0(century, year)),
-                TRUE ~ NA_integer_)) %>%
-        select(orig, month, day, year)
-    out %>% group_by(orig) %>% filter(n() == 1) %>% ungroup
+        group_by(orig) %>% filter(n() == 1) %>% ungroup %>%
+        mutate( dt = case_when(
+            str_detect(matchtype, "^ymd") ~ lubridate::ymd(match, quiet=TRUE),
+            str_detect(matchtype, "^mdy") ~ lubridate::mdy(match, quiet=TRUE))) %>%
+        verify(!is.na(dt)) %>%
+        mutate(
+            month = lubridate::month(dt),
+            day = lubridate::day(dt),
+            year = lubridate::year(dt)
+        ) %>% select(orig, month, day, year)
 }
 
 # }}}
@@ -75,7 +75,10 @@ ind <- read_parquet(args$input) %>% select(-url) # until we get this working
 dates <- dateparse(ind$filename)
 
 out <- ind %>%
-    mutate(npages   = map_int(filename, pdf_length),
+    mutate(filetype = case_when(
+               dtct(filename, "\\.pdf$") ~ "pdf",
+               dtct(filename, "\\.docx?$") ~ "word",
+               TRUE ~ "unknown"),
            region   = str_split(filename, "/") %>% map_chr(4),
            filepath = repo_name(filename),
            fileid   = str_sub(filesha1, 1, 7)) %>%
@@ -89,12 +92,13 @@ out <- ind %>%
             dtct(fn, "transcript")        ~ "transcript",
             dtct(fn, "v\\.? city of")     ~ "transcript",
             dtct(fn, "city of [^\\s]+ v") ~ "transcript",
+            region == "orleans" & dtct(fn, "^[A-Z][a-z]+,") ~ "transcript",
             dtct(fn, "agenda")            ~ "agenda",
             dtct(fn, "memo")              ~ "memo",
             TRUE ~ "other")) %>%
     left_join(dates, by = c(filename="orig")) %>%
-    select(fileid, region, year, month, day,
-           file_category, npages, filepath, filesha1,
+    select(fileid, filetype, region, year, month, day,
+           file_category, filepath, filesha1,
            starts_with("db_"))
 
 stopifnot(

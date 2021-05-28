@@ -5,9 +5,9 @@ index := ../index/output/metadata.csv
 
 .PHONY: all clean
 
-all: output/minutes.parquet
+all: output/minutes-pdf.parquet
 
-output/minutes.parquet: src/ocr-txt.R $(index)
+output/minutes-pdf.parquet: src/ocr-txt.R $(index)
 	-mkdir output
 	Rscript --vanilla $< \
 		--index=$(index) \

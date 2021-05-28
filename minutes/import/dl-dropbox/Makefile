@@ -22,6 +22,12 @@ la_out_path := output/louisiana_state/lspc
 sldl_db_path := PPACT/data/St. Tammany/Data Collected/Slidell/Slidell Civil Service Board
 sldl_out_path := output/slidell/scsb
 
+ads_db_path := PPACT/data/West Baton Rouge/Data Collected/Addis/Addis Town Council/Meeting Minutes
+ads_out_path := output/addis/atc
+
+orl_db_path := PPACT/data/Orleans/Data Collected/New Orleans Civil Service Commission
+orl_out_path := output/orleans/nocsc
+
 token := ../../../share/creds/dropbox-auth-token.rds
 
 .PHONY: all clean
@@ -33,7 +39,23 @@ all: \
 	$(wwgo_out_path)/index.csv \
 	$(viv_out_path)/index.csv \
 	$(la_out_path)/index.csv \
-	$(sldl_out_path)/index.csv
+	$(sldl_out_path)/index.csv \
+	$(ads_out_path)/index.csv \
+	$(orl_out_path)/index.csv
+
+$(orl_out_path)/index.csv: src/dl.R
+	-mkdir -p $(orl_out_path)
+	Rscript --vanilla $< \
+		--path="$(orl_db_path)" \
+		--token="$(token)" \
+		--outdir="$(orl_out_path)"
+
+$(ads_out_path)/index.csv: src/dl.R
+	-mkdir -p $(ads_out_path)
+	Rscript --vanilla $< \
+		--path="$(ads_db_path)" \
+		--token="$(token)" \
+		--outdir="$(ads_out_path)"
 
 $(sldl_out_path)/index.csv: src/dl.R
 	-mkdir -p $(sldl_out_path)
