@@ -9,13 +9,15 @@ pacman::p_load(
     dplyr,
     purrr,
     rdrop2,
-    stringr
+    stringr,
+    tidyr
 )
 # }}}
 
 # command-line args {{{
 parser <- ArgumentParser()
-parser$add_argument("--index")
+parser$add_argument("--pdfindex")
+parser$add_argument("--txtindex")
 parser$add_argument("--token")
 parser$add_argument("--dbpath")
 parser$add_argument("--output")
@@ -29,14 +31,24 @@ upload <- function(localfile, dbpath) {
 # load data {{{
 tok <- readRDS(args$token)
 
-drop_files <- drop_dir(args$dbpath, dtoken=tok) %>%
+drop_pdfs <- drop_dir(file.path(args$dbpath, "pdf")) %>%
     select(dbname = name, dbid = id, db_hash = content_hash)
 
-index <- read_parquet(args$index)
+drop_txts <- drop_dir(file.path(args$dbpath, "txt")) %>%
+    select(dbname = name, dbid = id, db_hash = content_hash)
+
+drop_files <- bind_rows(drop_pdfs, drop_txts)
+pdfindex <- read_parquet(args$pdfindex)
+txtindex <- read_parquet(args$txtindex)
+index <- pdfindex %>% inner_join(txtindex, by = "docid") %>%
+    pivot_longer(c(pdfname, txtname),
+                 names_to = "filetype", values_to = "path") %>%
+    mutate(filetype = str_replace(filetype, "name$", ""))
 
 local_files <- index %>%
     transmute(docid,
-              path = pdfname,
+              filetype,
+              path,
               filename = basename(path),
               local_db_hash = drop_content_hash(path),
               local_sha1hash = map_chr(path, digest,
@@ -51,21 +63,31 @@ stopifnot(nrow(to_remove) == 0)
 to_add <- local_files %>%
     left_join(drop_files, by = c("filename" = "dbname")) %>%
     filter(is.na(db_hash) | local_db_hash != db_hash) %>%
-    pluck("path")
+    mutate(dbpath = file.path(args$dbpath, filetype)) %>%
+    distinct(path, dbpath)
 
-walk(to_add, upload, dbpath = args$dbpath)
+walk2(to_add$path, to_add$dbpath, upload)
 # }}}
 
-done_drop_files <- drop_dir(args$dbpath, dtok=tok)
+done_drop_files <- drop_dir(args$dbpath, dtok=tok, recursive = TRUE)
 
-out <- index %>%
-    inner_join(local_files, by = c("docid", "pdfname" = "path")) %>%
+indout <- index %>%
+    distinct(docid, page_count) %>%
+    inner_join(local_files, by = "docid") %>%
     inner_join(done_drop_files, by = c("filename" = "name")) %>%
     transmute(docid, page_count,
-              fileid = str_sub(local_sha1hash, 1, 7),
-              file_db_path = path_display,
-              file_db_id = id,
-              file_db_content_hash = content_hash)
+              filetype,
+              db_path = path_display,
+              db_id = id,
+              db_content_hash = content_hash)
+
+out <- indout %>%
+    pivot_longer(c("db_path", "db_id", "db_content_hash"),
+                 names_to = "col", values_to = "val") %>%
+    transmute(docid, page_count,
+              col = paste(filetype, col, sep="_"),
+              val) %>% distinct %>%
+    pivot_wider(names_from = col, values_from = val)
 
 write_parquet(out, args$output)
 

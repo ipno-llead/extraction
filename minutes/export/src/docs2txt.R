@@ -9,8 +9,8 @@
 pacman::p_load(
     argparse,
     arrow,
-    assertr,
     dplyr,
+    purrr,
     readr,
     stringr
 )
@@ -18,15 +18,14 @@ pacman::p_load(
 
 # args {{{
 parser <- ArgumentParser()
-parser$add_argument("--index")
-parser$add_argument("--hearings")
 parser$add_argument("--docs")
-parser$add_argument("--output")
+parser$add_argument("--outputdir")
 args <- parser$parse_args()
 # }}}
 
-ind <- read_parquet(args$index)
-hrg <- read_parquet(args$hearings)
+txtdir <- file.path(args$outputdir, "txt")
+if (!dir.exists(txtdir)) dir.create(txtdir, recursive = TRUE)
+
 docs <- read_parquet(args$docs)
 
 doctxt <- docs %>%
@@ -34,23 +33,15 @@ doctxt <- docs %>%
     group_by(docid) %>%
     summarise(ocr_text = paste(text, collapse="\n"), .groups="drop") %>%
     mutate(ocr_text = str_replace_all(ocr_text, "(\n[ ]*){3,}", "\n\n"),
-           ocr_text = str_trim(ocr_text))
+           ocr_text = str_trim(ocr_text),
+           filename = file.path(txtdir, paste0(docid, ".txt")))
 
-hearings <- hrg %>%
-    transmute(docid,
-           year = mtg_year,
-           month = mtg_month,
-           day = mtg_day,
-           dt_source = mtg_dt_source,
-           hrg_no = hrgno,
-           accused = hrg_accused,
-           matched_uid = hrg_acc_uid,
-           hrg_text = paste(hrg_head, hrg_text, sep="\n"))
+walk2(doctxt$ocr_text, doctxt$filename,
+      write_lines, sep = "\n", append = FALSE)
 
-out <- ind %>%
-    inner_join(hearings, by = "docid") %>%
-    inner_join(doctxt, by = "docid")
+outname <- file.path(args$outputdir, "txt-index.parquet")
+out <- doctxt %>% distinct(docid, txtname = filename)
 
-write_csv(out, args$output)
+write_parquet(out, outname)
 
 # done.

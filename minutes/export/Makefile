@@ -13,6 +13,7 @@ wrgl_creds := ../../share/creds/wrgl-creds.txt
 db_token := ../../share/creds/dropbox-auth-token.rds
 
 pdf_index := output/pdf-index.parquet
+txt_index := output/txt-index.parquet
 db_index := output/db-index.parquet
 
 output := output/documents.csv
@@ -32,19 +33,24 @@ wrgl: $(wrgl_creds) $(output)
 		"updated" \
 		-p "docid,hrg_no,matched_uid"
 
-$(output): src/merge-doctxt.R $(db_index) $(hrgs) $(docs)
+$(output): src/make-output.R $(db_index) $(hrgs)
 	Rscript --vanilla $< \
 		--index=$(db_index) \
 		--hearings=$(hrgs) \
-		--docs=$(docs) \
 		--output=$@
 
-$(db_index): src/dropbox-up.R $(pdf_index) $(db_token)
+$(db_index): src/dropbox-up.R $(pdf_index) $(txt_index) $(db_token)
 	Rscript --vanilla $< \
-		--index=$(pdf_index) \
+		--pdfindex=$(pdf_index) \
+		--txtindex=$(txt_index) \
 		--token=$(db_token) \
-		--dbpath="/ppact/meeting-minutes-extraction/export/pdfs" \
+		--dbpath="/ppact/meeting-minutes-extraction/export" \
 		--output=$@
+
+$(txt_index): src/docs2txt.R $(docs)
+	Rscript --vanilla $< \
+		--docs=$(docs) \
+		--outputdir=output
 
 $(pdf_index): src/subset-pdfs.R $(hrgs) $(meta)
 	Rscript --vanilla $< \
