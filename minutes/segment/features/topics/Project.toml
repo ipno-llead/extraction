@@ -1,0 +1,5 @@
+[deps]
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+Embeddings = "c5bfea45-b7f1-5224-a596-15500f5db411"
+Parquet = "626c502c-15b0-58ad-a749-f091afb673ae"
+Word2Vec = "c64b6f0f-98cd-51d1-af78-58ae84944834"

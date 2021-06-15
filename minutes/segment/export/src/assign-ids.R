@@ -14,12 +14,20 @@ pacman::p_load(
 
 # args {{{
 parser <- ArgumentParser()
-parser$add_argument("--input", default = "../classify/output/minutes.parquet")
+parser$add_argument("--docs", default = "../import/output/minutes.parquet")
+parser$add_argument("--labs", default = "../classify/output/line-labels.parquet")
 parser$add_argument("--output")
 args <- parser$parse_args()
 # }}}
 
-docs <- read_parquet(args$input) %>% arrange(docid, docpg, lineno)
+mins <- read_parquet(args$docs)
+labs <- read_parquet(args$labs) %>%
+    rename(linetype = label,
+           linetype_conf = marginal)
+
+docs <- mins %>%
+    inner_join(labs, by = c("docid", "docpg", "lineno")) %>%
+    arrange(docid, docpg, lineno)
 
 log_info("read ", nrow(docs), " rows of input data")
 log_info(length(unique(docs$docid)), " documents")

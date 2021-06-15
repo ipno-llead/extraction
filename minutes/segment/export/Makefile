@@ -3,7 +3,8 @@
 # Copyright:   2021, HRDAG, GPL v2 or later
 # =========================================
 
-input := ../classify/output/minutes.parquet
+docs := ../import/output/minutes.parquet
+labs := ../classify/output/line-labels.parquet
 output := output/minutes.parquet
 src := src/assign-ids.R
 
@@ -14,9 +15,10 @@ all: $(output)
 clean: 
 	-rm -r output/*
 
-$(output): $(src) $(input)
+$(output): $(src) $(docs) $(labs)
 	Rscript --vanilla $< \
-		--input=$(input) \
+		--docs=$(docs) \
+		--labs=$(labs) \
 		--output=$@ &> output/log.txt
 
 # done.

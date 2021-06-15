@@ -19,7 +19,8 @@ parser$add_argument("--output")
 args <- parser$parse_args()
 # }}}
 
-docs <- read_parquet(args$input)
+docs <- read_parquet(args$input) %>%
+    filter(doctype %in% c("meeting", "hearing"))
 
 doclines <- docs %>%
     arrange(fileid, pageno) %>%

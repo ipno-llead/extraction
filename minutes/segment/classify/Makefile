@@ -1,6 +1,7 @@
-input := ../import/output/minutes.parquet
-output := output/minutes.parquet
-src := src/heuristic.R
+data := ../features/export/output/minutes-features.parquet
+model := ../train/output/line-classifier.crfsuite
+output := output/line-labels.parquet
+src := src/crf.R
 
 .PHONY: all clean
 
@@ -9,10 +10,11 @@ all: $(output)
 clean: 
 	-rm -r output/*
 
-$(output): $(src) $(input)
+$(output): $(src) $(data) $(model)
 	-mkdir output
 	Rscript --vanilla $< \
-		--input=$(input) \
+		--data=$(data) \
+		--model=$(model) \
 		--output=$@
 
 # done.

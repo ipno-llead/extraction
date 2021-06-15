@@ -26,7 +26,7 @@ labs <- read_parquet(args$labels)
 
 out <- labs %>%
     inner_join(mins, by = c("fileid", "pageno", "lineno")) %>%
-    select(docid, doctype, fileid,
+    select(docid, docpg, doctype, fileid,
            f_region, f_year, f_month, f_day,
            pageno, lineno, text, label = actual)
 
