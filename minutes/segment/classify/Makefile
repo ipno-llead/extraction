@@ -15,6 +15,6 @@ $(output): $(src) $(data) $(model)
 	Rscript --vanilla $< \
 		--data=$(data) \
 		--model=$(model) \
-		--output=$@
+		--output=$@ &> output/log.txt
 
 # done.

@@ -83,21 +83,23 @@ real2bin <- function(topic) {
             if_else(topic >= .5, 1L, 0L))
 }
 
-
 prepped <- docs %>%
     arrange(docid, docpg, lineno) %>%
     select(docid, docpg, lineno,
-           #f_region,
+           #            f_region,
            starts_with("topic_"),
            starts_with("feat_"),
            starts_with("re_"),
-           #starts_with("re_"), starts_with("t_"), starts_with("feat_")
+           #            starts_with("t_"), starts_with("feat_"),
            label) %>%
-    #     mutate(across(starts_with("t_"), real2bin)) %>%
+    mutate(across(starts_with("t_"), real2bin)) %>%
     group_by(docid) %>%
-    mutate(across(c(starts_with("re_"), starts_with("feat_"), starts_with("topic_")),
+    mutate(across(c(starts_with("re_"), starts_with("feat_"),
+                    starts_with("topic_"), starts_with("t_")),
                   list(nxt1 = ~lead(., 1) %>% replace_na(0L),
-                       prv1 = ~lag(., 1) %>% replace_na(0L)),
+                       prv1 = ~lag(., 1) %>% replace_na(0L),
+                       nxt2 = ~lead(., 2) %>% replace_na(0L),
+                       prv2 = ~lag(., 2) %>% replace_na(0L)),
                   .names = "{fn}_{col}")) %>%
     ungroup %>%
     mutate_at(vars(-docid, -docpg, -lineno, -label), as.character) %>%
@@ -106,7 +108,13 @@ prepped <- docs %>%
     filter(!is.na(value)) %>%
     mutate(value = paste0(variable, "=", value)) %>%
     pivot_wider(names_from = variable, values_from = value) %>%
+    mutate(across(c(starts_with("topic_"), starts_with("re_"),
+                    starts_with("t_")),
+                  ~paste(feat_caps, ., sep="|"),
+                  .names = "conj_{col}_caps")) %>%
     arrange(docid, docpg, lineno)
+
+log_info("prepped data has ", ncol(prepped), " columns")
 # }}}
 
 # loo metrics {{{

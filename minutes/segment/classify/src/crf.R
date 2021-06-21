@@ -18,7 +18,7 @@ pacman::p_load(
 
 # args {{{
 parser <- ArgumentParser()
-parser$add_argument("--data", default = "../features/output/minutes-features.parquet")
+parser$add_argument("--data", default = "../features/export/output/minutes-features.parquet")
 parser$add_argument("--model", default = "../train/output/line-classifier.crfsuite")
 parser$add_argument("--output")
 args <- parser$parse_args()
@@ -40,17 +40,17 @@ real2bin <- function(topic) {
 prepped <- docs %>%
     arrange(docid, docpg, lineno) %>%
     select(docid, docpg, lineno,
-           #f_region,
            starts_with("topic_"),
            starts_with("feat_"),
-           starts_with("re_"),
-           #starts_with("re_"), starts_with("t_"), starts_with("feat_")
-           ) %>%
-    #     mutate(across(starts_with("t_"), real2bin)) %>%
+           starts_with("re_")) %>%
+    mutate(across(starts_with("t_"), real2bin)) %>%
     group_by(docid) %>%
-    mutate(across(c(starts_with("re_"), starts_with("feat_"), starts_with("topic_")),
+    mutate(across(c(starts_with("re_"), starts_with("feat_"),
+                    starts_with("topic_"), starts_with("t_")),
                   list(nxt1 = ~lead(., 1) %>% replace_na(0L),
-                       prv1 = ~lag(., 1) %>% replace_na(0L)),
+                       prv1 = ~lag(., 1) %>% replace_na(0L),
+                       nxt2 = ~lead(., 2) %>% replace_na(0L),
+                       prv2 = ~lag(., 2) %>% replace_na(0L)),
                   .names = "{fn}_{col}")) %>%
     ungroup %>%
     mutate_at(vars(-docid, -docpg, -lineno), as.character) %>%
@@ -59,6 +59,10 @@ prepped <- docs %>%
     filter(!is.na(value)) %>%
     mutate(value = paste0(variable, "=", value)) %>%
     pivot_wider(names_from = variable, values_from = value) %>%
+    mutate(across(c(starts_with("topic_"), starts_with("re_"),
+                    starts_with("t_")),
+                  ~paste(feat_caps, ., sep="|"),
+                  .names = "conj_{col}_caps")) %>%
     arrange(docid, docpg, lineno)
 # }}}
 
@@ -67,6 +71,21 @@ preds <- predict(model, newdata = prepped, group = prepped$docid)
 out <- prepped %>%
     select(docid, docpg, lineno) %>%
     bind_cols(preds)
+
+log_info("count of labels by jurisdiction and document type")
+out %>%
+    inner_join(docs %>% distinct(docid, f_region, doctype),
+               by = "docid") %>%
+    count(f_region, doctype, label) %>%
+    pivot_wider(names_from = label, values_from = n, values_fill = 0)
+
+log_info("avg. marginal probability of labels, by jursidiction and doctype")
+out %>%
+    inner_join(docs %>% distinct(docid, f_region, doctype),
+               by = "docid") %>%
+    group_by(f_region, doctype, label) %>%
+    summarise(marginal = mean(marginal), .groups = "drop") %>%
+    pivot_wider(names_from = label, values_from = marginal)
 
 write_parquet(out, args$output)
 

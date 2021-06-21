@@ -7,15 +7,17 @@
 
 # variables {{{
 minutes := ../export/output/minutes.parquet
-docids := output/sampled-docids.txt
 meta := ../../import/export/output/metadata.csv
 
-exceldir := output/training-data
+outstub := samps-20210621
+exceldir := output/$(outstub)
+docids := output/$(outstub)-docids.txt
 
 sampler := src/sample-docids.R
+#sampler := src/under-represented-regions.R
 formatter := src/format-for-review.R
 
-index := output/training-data-index.xlsx
+index := output/$(outstub)-index.xlsx
 # }}}
 
 .PHONY: all clean
@@ -31,12 +33,14 @@ $(index): $(formatter) $(minutes) $(meta) $(docids)
 		--minutes=$(minutes) \
 		--meta=$(meta) \
 		--docs=$(docids) \
+		--traindir=$(exceldir) \
 		--output=$@
 
 $(docids): $(sampler) $(minutes)
 	-mkdir output
 	Rscript --vanilla $< \
 		--input=$(minutes) \
+		--already=frozen \
 		--overweight=3 \
 		--sampsize=40 \
 		--output=$@

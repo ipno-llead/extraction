@@ -13,12 +13,16 @@ pacman::p_load(
 
 parser <- ArgumentParser()
 parser$add_argument("--input", default = "../export/output/minutes.parquet")
+parser$add_argument("--already", default = "frozen")
 parser$add_argument("--overweight", type = "integer", default = 3L)
 parser$add_argument("--sampsize", type = "integer", default = 40L)
 parser$add_argument("--output")
 args <- parser$parse_args()
 
-docs <- read_parquet(args$input)
+already <- list.files(args$already, full.names = TRUE) %>%
+    map(readLines) %>% unlist %>% unique
+
+docs <- read_parquet(args$input) %>% filter(! docid %in% already)
 
 n_region <- length(unique(docs$f_region))
 samps_region <- ceiling(.5 * args$sampsize/n_region)

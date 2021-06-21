@@ -15,10 +15,10 @@ pacman::p_load(
 
 # args {{{
 parser <- ArgumentParser()
-parser$add_argument("--minutes", default = "../export/output/minutes.parquet")
-parser$add_argument("--meta", default = "../../import/export/output/metadata.csv")
-parser$add_argument("--docs", default = "output/sampled-docids.txt")
-parser$add_argument("--traindir", default = "output/training-data")
+parser$add_argument("--minutes")
+parser$add_argument("--meta")
+parser$add_argument("--docs")
+parser$add_argument("--traindir")
 parser$add_argument("--output")
 args <- parser$parse_args()
 # }}}
