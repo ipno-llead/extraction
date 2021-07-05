@@ -20,7 +20,7 @@ pacman::p_load(
 
 # args {{{
 parser <- ArgumentParser()
-parser$add_argument("--traindir", default = "input/training-labels")
+parser$add_argument("--trainlabs")
 parser$add_argument("--fixes", default = "hand/label-fixes.yaml")
 parser$add_argument("--output")
 args <- parser$parse_args()
@@ -45,7 +45,7 @@ read <- function(excelfile, required) {
 
 repair <- read_yaml(args$fixes) %>% unlist
 
-labs <- list.files(args$traindir, full.names = TRUE) %>%
+labs <- strsplit(args$trainlabs, "\\s+")[[1]] %>%
     set_names %>%
     map_dfr(read, required = required_cols,
             .id = "trainfile")

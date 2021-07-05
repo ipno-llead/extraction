@@ -34,7 +34,7 @@ $(train_out): src/export-training.R $(mins_out) $(labs)
 $(labs): src/gather-training.R $(labfiles) $(labs_fix)
 	-mkdir -p output/working
 	Rscript --vanilla $< \
-		--traindir=$(labs_dir) \
+		--trainlabs="$(labfiles)" \
 		--fixes=$(labs_fix) \
 		--output=$@ &> output/labels-log.txt
 
