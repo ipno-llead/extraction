@@ -28,6 +28,9 @@ ads_out_path := output/addis/atc
 orl_db_path := PPACT/data/Orleans/Data Collected/New Orleans Civil Service Commission
 orl_out_path := output/orleans/nocsc
 
+lc_db_path := PPACT/data/Calcasieu/Data Collected/Lake Charles Fire and Police Civil Service Board
+lc_out_path := output/lake_charles/lcfpcsb
+
 token := ../../../share/creds/dropbox-auth-token.rds
 
 .PHONY: all clean
@@ -41,7 +44,8 @@ all: \
 	$(la_out_path)/index.csv \
 	$(sldl_out_path)/index.csv \
 	$(ads_out_path)/index.csv \
-	$(orl_out_path)/index.csv
+	$(orl_out_path)/index.csv \
+	$(lc_out_path)/index.csv
 
 $(orl_out_path)/index.csv: src/dl.R
 	-mkdir -p $(orl_out_path)
@@ -107,5 +111,12 @@ $(mvil_pcsb_out_path)/index.csv: src/dl.R
 		--path="$(mvil_pcsb_db_path)" \
 		--token="$(token)" \
 		--outdir="$(mvil_pcsb_out_path)"
+
+$(lc_out_path)/index.csv: src/dl.R
+	-mkdir -p $(lc_out_path)
+	Rscript --vanilla $< \
+		--path="$(lc_db_path)" \
+		--token="$(token)" \
+		--outdir="$(lc_out_path)"
 
 # done.
