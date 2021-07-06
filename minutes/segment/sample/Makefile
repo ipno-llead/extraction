@@ -9,12 +9,13 @@
 minutes := ../export/output/minutes.parquet
 meta := ../../import/export/output/metadata.csv
 
-outstub := samps-20210621
+outstub := targeted-20210705
 exceldir := output/$(outstub)
 docids := output/$(outstub)-docids.txt
 
-sampler := src/sample-docids.R
-#sampler := src/under-represented-regions.R
+#sampler := src/sample-docids.R
+sampler := src/target-unlabeled-hearings.R
+sampsize := 15
 formatter := src/format-for-review.R
 
 index := output/$(outstub)-index.xlsx
@@ -42,7 +43,7 @@ $(docids): $(sampler) $(minutes)
 		--input=$(minutes) \
 		--already=frozen \
 		--overweight=3 \
-		--sampsize=40 \
+		--sampsize=$(sampsize) \
 		--output=$@
 
 # done.

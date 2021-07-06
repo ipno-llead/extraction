@@ -26,10 +26,12 @@ clean:
 # force roster updates from wrgl
 force: ;
 
+# running this recipe as one line in order to set api creds as env. variables
+# only locally within the recipe
 output/working/%.csv: force
 	-mkdir -p output/working
-	set -o allexport; source $(wrgl_creds); set +o allexport
-	$(wrglctl) login --apikey=${WRGL_APIKEY}
+	set -o allexport ; source $(wrgl_creds) ; set +o allexport ;\
+	$(wrglctl) login --apikey=$$WRGL_APIKEY;
 	$(wrglctl) repos pull @ipno/$* $@
 
 $(output_mins): $(input_mins)

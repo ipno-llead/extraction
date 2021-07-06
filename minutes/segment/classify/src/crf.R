@@ -18,14 +18,16 @@ pacman::p_load(
 
 # args {{{
 parser <- ArgumentParser()
-parser$add_argument("--data", default = "../features/export/output/minutes-features.parquet")
-parser$add_argument("--model", default = "../train/output/line-classifier.crfsuite")
+parser$add_argument("--data")
+parser$add_argument("--model")
+parser$add_argument("--truth")
 parser$add_argument("--output")
 args <- parser$parse_args()
 # }}}
 
 docs <- read_parquet(args$data)
 model <- as.crf(args$model)
+truth <- read_parquet(args$truth) %>% distinct(fileid, pageno, lineno, label)
 
 # prep features {{{
 log_info("prepping data for classification")
@@ -68,9 +70,19 @@ prepped <- docs %>%
 
 preds <- predict(model, newdata = prepped, group = prepped$docid)
 
+label_fixes <- docs %>%
+    distinct(fileid, pageno, docid, docpg, lineno) %>%
+    inner_join(truth, by = c("fileid", "pageno", "lineno")) %>%
+    select(docid, docpg, lineno, truth = label)
+
 out <- prepped %>%
     select(docid, docpg, lineno) %>%
-    bind_cols(preds)
+    bind_cols(preds) %>%
+    left_join(label_fixes, by = c("docid", "docpg", "lineno")) %>%
+    mutate(marginal     = if_else(is.na(truth), marginal, NA_real_),
+           label        = coalesce(truth, label),
+           label_source = if_else(is.na(truth), "model", "human")) %>%
+    select(-truth)
 
 log_info("count of labels by jurisdiction and document type")
 out %>%
