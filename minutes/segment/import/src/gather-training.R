@@ -49,6 +49,11 @@ labs <- strsplit(args$trainlabs, "\\s+")[[1]] %>%
     set_names %>%
     map_dfr(read, required = required_cols,
             .id = "trainfile")
+
+issues <- labs %>% group_by(fileid, pageno, lineno) %>% filter(n() > 1) %>%
+    ungroup
+
+stopifnot(nrow(issues) == 0)
 # }}}
 
 # label validation/fixing before export {{{
