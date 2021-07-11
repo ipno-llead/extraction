@@ -42,7 +42,7 @@ confusion_matrix <- function(predictions, truth, lab_xref) {
 }
 
 fit_crf <- function(training_data, ...) {
-    crf(x = training_data %>% select(-docid, -lineno, -docpg, -label),
+    crf(x = training_data %>% select(-docid, -lineno, -docpg, -label, -f_region),
         y = training_data$label,
         group = training_data$docid, ...)
 }
@@ -85,8 +85,8 @@ real2bin <- function(topic) {
 
 prepped <- docs %>%
     arrange(docid, docpg, lineno) %>%
-    select(docid, docpg, lineno,
-           #            f_region,
+    select(docid, docpg, lineno, doctype,
+           f_region,
            starts_with("topic_"),
            starts_with("feat_"),
            starts_with("re_"),
@@ -103,7 +103,7 @@ prepped <- docs %>%
                   .names = "{fn}_{col}")) %>%
     ungroup %>%
     mutate_at(vars(-docid, -docpg, -lineno, -label), as.character) %>%
-    pivot_longer(cols = c(-docid, -docpg, -lineno, -label),
+    pivot_longer(cols = c(-docid, -docpg, -lineno, -doctype, -label),
                  names_to = "variable", values_to = "value") %>%
     filter(!is.na(value)) %>%
     mutate(value = paste0(variable, "=", value)) %>%
@@ -120,7 +120,8 @@ log_info("prepped data has ", ncol(prepped), " columns")
 # loo metrics {{{
 log_info("calculating loo models...")
 cv <- nest(prepped, data = -docid) %>%
-    loo_cv %>%
+    bootstraps(times = 15) %>%
+#     loo_cv %>%
     mutate(train=map(splits, training),
            test=map(splits, testing))
 cv <- cv %>% mutate(metrics = map2(train, test, crf_metrics))
