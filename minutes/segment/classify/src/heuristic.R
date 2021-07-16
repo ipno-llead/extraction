@@ -223,7 +223,10 @@ classes <- bind_rows(ww, ebr, la, mv, sl, knr_hearing, knr) %>%
 
 
 out <- doclines %>%
-    inner_join(classes, by = c("docid", "docpg", "lineno"))
+    inner_join(classes, by = c("docid", "docpg", "lineno")) %>%
+    transmute(docid, docpg, lineno,
+              label = linetype,
+              label_source = "heuristic")
 
 write_parquet(out, args$output)
 

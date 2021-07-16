@@ -96,7 +96,7 @@ out %>%
     inner_join(docs %>% distinct(docid, f_region, doctype),
                by = "docid") %>%
     group_by(f_region, doctype, label) %>%
-    summarise(marginal = mean(marginal), .groups = "drop") %>%
+    summarise(marginal = mean(marginal, na.rm = TRUE), .groups = "drop") %>%
     pivot_wider(names_from = label, values_from = marginal)
 
 write_parquet(out, args$output)
