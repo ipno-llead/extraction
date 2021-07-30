@@ -58,13 +58,18 @@ local_files <- index %>%
 # upload files that are new {{{
 to_remove <- drop_files %>%
     anti_join(local_files, by = c("dbname" = "filename"))
-stopifnot(nrow(to_remove) == 0)
+if (nrow(to_remove) > 0)
+    warning(str_glue("there are {nrow(to_remove)} files on dropbox that are no longer matched to a db file"),
+            call. = FALSE)
+# stopifnot(nrow(to_remove) == 0)
 
 to_add <- local_files %>%
     left_join(drop_files, by = c("filename" = "dbname")) %>%
     filter(is.na(db_hash) | local_db_hash != db_hash) %>%
     mutate(dbpath = file.path(args$dbpath, filetype)) %>%
     distinct(path, dbpath)
+
+message(str_glue("uploading {nrow(to_add)} files"))
 
 walk2(to_add$path, to_add$dbpath, upload)
 # }}}

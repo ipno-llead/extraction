@@ -26,8 +26,8 @@ clean:
 	-rm -r output/*
 
 wrgl: $(wrgl_creds) $(output)
-	set -o allexport; source $(wrgl_creds); set +o allexport
-	$(wrglctl) login --apikey=${WRGL_APIKEY}
+	set -o allexport ; source $(wrgl_creds) ; set +o allexport ;\
+	$(wrglctl) login --apikey=$$WRGL_APIKEY;
 	$(wrglctl) repos commit $(output) \
 		@ipno/documents \
 		"updated" \

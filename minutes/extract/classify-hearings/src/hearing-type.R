@@ -26,14 +26,19 @@ dtct <- function(string, pattern) {
     str_detect(string, regex(pattern, ignore_case = TRUE))
 }
 
-hearings <- read_parquet(args$input) %>% filter(linetype == "hearing_header")
+hearings <- read_parquet(args$input) %>%
+    filter(linetype %in% c("hearing_header", "hearing"),
+           hrgno > 0)
 
 log_info(nrow(distinct(hearings, docid, hrgno)), " distinct hearings to start")
 
 # classify{{{
 out <- hearings %>%
+    arrange(docid, docpg, lineno) %>%
     group_by(docid, hrgno) %>%
-    summarise(text = paste(text, collapse = " ") %>% str_squish) %>%
+    slice_head(n = 7) %>%
+    summarise(text = paste(text, collapse = " ") %>% str_squish,
+              .groups = "drop") %>%
     mutate(fire =
             dtct(text, "firefighter") |
             dtct(text,"fire captain") |
