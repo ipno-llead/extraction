@@ -1,16 +1,20 @@
 .PHONY: all clean
 
-input := ../ocr/output/news-txt.parquet
+news_in := ../ocr/output/news-txt.parquet
+roster_in := ../officer-roster/output/roster.parquet
 
 outdir := output
-outnm := news.parquet
+news_out := news.parquet
+roster_out := roster.parquet
 
-output := $(outdir)/$(outnm)
+all: $(outdir)/$(news_out) $(outdir)/$(roster_out)
 
-all: $(output)
-
-$(output): $(input)
+$(outdir)/$(news_out): $(news_in)
 	-mkdir $(outdir)
-	cd $(outdir) && ln -s ../$(input) $(outnm)
+	cd $(outdir) && ln -s ../$(news_in) $(news_out)
+	
+$(outdir)/$(roster_out): $(roster_in)
+	-mkdir $(outdir)
+	cd $(outdir) && ln -s ../$(roster_in) $(roster_out)
 	
 # done.

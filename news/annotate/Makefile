@@ -4,7 +4,7 @@
 news := ../import/export/output/news.parquet
 
 annotate := src/annotate-spacy.R
-annotations := output/news-annotated.parquet
+annotations := output/news-annotated.rds
 
 .PHONY: all clean
 

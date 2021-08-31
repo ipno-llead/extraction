@@ -5,6 +5,7 @@
 pacman::p_load(
     argparse,
     arrow,
+    dplyr,
     spacyr
 )
 # }}}
@@ -20,7 +21,12 @@ nw <- read_parquet(args$input)
 # spacy_install()
 spacy_initialize(model = "en_core_web_sm")
 
-parsed <- spacy_parse(nw$text,
+# tif format, see https://github.com/ropensci/tif
+to_parse <- nw %>%
+    transmute(doc_id = paste(fileid, pageno, sep = "_"),
+              text)
+
+parsed <- spacy_parse(to_parse,
                       lemma = FALSE,
                       entity = TRUE,
                       nounphrase = TRUE)
