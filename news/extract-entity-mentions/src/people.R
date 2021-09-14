@@ -54,8 +54,8 @@ people <- entity_consolidate(annotations, concatenator = " ") %>% tibble %>%
     ungroup
 
 out <- people %>% filter(entity_type == "PERSON") %>%
-    filter(str_detect(token, regex(re_titles, ignore_case = TRUE))) %>%
-    distinct(fileid, name = token)
+    mutate(title = str_detect(token, regex(re_titles, ignore_case = TRUE))) %>%
+    distinct(fileid, name = token, title)
 
 write_parquet(out, args$output)
 

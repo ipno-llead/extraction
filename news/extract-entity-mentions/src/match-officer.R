@@ -24,7 +24,7 @@ candidates <- read_parquet(args$mentions)
 roster <- read_parquet(args$roster)
 
 candidate_tokens <- candidates %>%
-    transmute(fileid,
+    transmute(fileid, title,
               candidate_name = str_to_lower(name),
               token = str_split(candidate_name, boundary("word"))) %>%
     unnest(token)
@@ -39,9 +39,9 @@ roster_tokens <- roster %>%
 
 out <- candidate_tokens %>%
     inner_join(roster_tokens, by = "token") %>%
-    group_by(fileid, candidate_name, roster_name, uid) %>%
+    group_by(fileid, title, candidate_name, roster_name, uid) %>%
     filter(n_distinct(type) > 1) %>% ungroup %>%
-    distinct(fileid, uid, roster_name)
+    distinct(fileid, uid, candidate_name, title, roster_name)
 
 write_parquet(out, args$output)
 
