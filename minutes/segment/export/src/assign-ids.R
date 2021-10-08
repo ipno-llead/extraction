@@ -20,6 +20,12 @@ parser$add_argument("--output")
 args <- parser$parse_args()
 # }}}
 
+padpaste <- function(pg, line) {
+    paste0(str_pad(pg, width=4, side="left", pad="0"),
+           ".",
+           str_pad(line, width=3, side="left", pad="0"))
+}
+
 mins <- read_parquet(args$docs)
 labs <- read_parquet(args$labs) %>%
     rename(linetype = label,
@@ -27,7 +33,8 @@ labs <- read_parquet(args$labs) %>%
 
 docs <- mins %>%
     inner_join(labs, by = c("docid", "docpg", "lineno")) %>%
-    arrange(docid, docpg, lineno)
+    arrange(docid, docpg, lineno) %>%
+    mutate(line_seqid = padpaste(pageno, lineno))
 
 log_info("read ", nrow(docs), " rows of input data")
 log_info(length(unique(docs$docid)), " documents")

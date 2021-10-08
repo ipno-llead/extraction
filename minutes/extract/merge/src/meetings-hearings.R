@@ -33,11 +33,14 @@ hrg_acc <- read_parquet(args$accused)
 hrgs <- docs %>%
     filter(!is.na(hrgno)) %>%
     arrange(docid, docpg, hrgno, lineno) %>%
-    group_by(docid, hrgno, linetype) %>%
+    group_by(fileid, docid, hrgno) %>%
+    mutate(hrg_loc = paste(min(line_seqid), max(line_seqid), sep = ":")) %>%
+    group_by(fileid, docid, hrgno, hrg_loc, linetype) %>%
     summarise(text = paste(text, collapse="\n"),
-              .groups="drop") %>%
+              .groups="drop_last") %>%
     pivot_wider(names_from = linetype, values_from = text) %>%
-    select(docid, hrgno, hrg_head = hearing_header, hrg_text = hearing)
+    select(fileid, docid, hrgno, hrg_loc,
+           hrg_head = hearing_header, hrg_text = hearing)
 
 doc_xref <- docs %>% group_by(docid) %>%
     mutate(fileid = unique(fileid),
@@ -57,7 +60,7 @@ out <- doc_xref %>%
     left_join(mtg_date, by = "docid") %>%
     left_join(hrg_tp, by = c("docid", "hrgno")) %>%
     left_join(hrg_acc, by = c("docid", "hrgno")) %>%
-    left_join(hrgs, by = c("docid", "hrgno")) %>%
+    left_join(hrgs, by = c("fileid", "docid", "hrgno")) %>%
     select(docid, fileid, jurisdiction,
            starts_with("doc_"),
            starts_with("mtg_"),
