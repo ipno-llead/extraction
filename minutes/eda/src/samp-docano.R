@@ -5,6 +5,7 @@ pacman::p_load(
     argparse,
     arrow,
     dplyr,
+    jsonlite,
     purrr,
     qpdf,
     readr,
@@ -13,66 +14,58 @@ pacman::p_load(
 
 
 parser <- ArgumentParser()
-parser$add_argument("--input", default="../ocr/output/minutes.parquet")
-parser$add_argument("--index", default="../ocr/output/index.csv")
-parser$add_argument("--ents", default="../eda/output/matched-entities.parquet")
-parser$add_argument("--sampsize", type="integer", default=5L)
+parser$add_argument("--input", default = "../extract/export/output/hearings.parquet")
+parser$add_argument("--doctypes", default = "../classify-pages/export/output/minutes.parquet")
+parser$add_argument("--meta", default = "../import/export/output/metadata.csv")
+parser$add_argument("--sampsize", type="integer", default=100L)
 parser$add_argument("--outputdir", default="output")
 args <- parser$parse_args()
-
-docs <- read_parquet(args$input)
-ents <- read_parquet(args$ents)
-index <- read_delim(args$index, delim="|",
-                    col_types=cols(.default=col_character()))
-
-samps <- docs %>%
-    distinct(fileid, filename, pageno) %>%
-    mutate(region=strsplit(filename, "/"),
-           region=map_chr(region, 6)) %>%
-    left_join(distinct(ents, fileid, pageno=pg, ent=T),
-              by=c("fileid", "pageno")) %>%
-    replace_na(list(ent=F)) %>%
-    nest(data=c(-region, -ent)) %>%
-    mutate(sampled=map(data, sample_n, args$sampsize)) %>%
-    select(sampled) %>% unnest(sampled)
-
-proc <- function(txt) {
-    str_split(txt, "\n{2,}")[[1]] %>%
-        keep(str_count(., "[a-zA-Z]") > 2) %>%
-        str_replace_all("\n", " ") %>%
-        paste(collapse="\n\n")
-}
-
-dict <- index %>% mutate(fileid=str_sub(filesha1, 1, 7)) %>%
-    distinct(fileid, db_path)
 
 l2json <- function(l) {
     metas <- names(l)[names(l) != "text"]
     list(
-        meta=l[metas],
-        text=l[["text"]]
+        meta = l[metas],
+        text = l[["text"]]
     ) %>% toJSON(auto_unbox=TRUE)
 }
 
-tmp <- docs %>%
-    select(-filename) %>%
-    inner_join(distinct(samps, fileid, pageno),
-               by=c("fileid", "pageno")) %>%
-    mutate(text=map_chr(text, proc)) %>%
-    inner_join(dict, by="fileid") %>%
-    select(fileid, db_path, pageno, text) %>%
-    mutate(json=pmap(., list),
-           json=map_chr(json, l2json))
+
+docs <- read_parquet(args$input)
+doctypes <- read_parquet(args$doctypes) %>% distinct(docid, doctype)
+
+dict <- read_delim(args$meta, delim = "|",
+                   col_types = cols(.default = col_character())) %>%
+    distinct(fileid, db_path)
+
+samps <- docs %>%
+    inner_join(doctypes, by = "docid") %>%
+    filter(hrg_type != "fire",
+           !str_detect(hrg_text, regex("employed by the (.+) fire department",
+                                       ignore_case = TRUE))) %>%
+    nest(data = c(-doctype, -jurisdiction, -hrg_type)) %>%
+    #     filter(hrg_type == "unknown") %>% mutate(data = map(data, sample_n, 1)) %>%
+    #     unnest(data) %>%
+    #     select(hrg_head, hrg_text)
+    mutate(sampsize = pmin(map_int(data, nrow), 10)) %>%
+    mutate(data = map2(data, sampsize, sample_n)) %>%
+    unnest(data) %>%
+    select(docid, hrgno)
+
+formatted <- docs %>%
+    inner_join(samps, by = c("docid", "hrgno")) %>%
+    mutate(text = paste(hrg_head,
+                        str_replace_all(hrg_text, "\n", " ") %>% str_squish,
+                        sep = "\n")) %>%
+    inner_join(dict, by = "fileid") %>%
+    select(fileid, jurisdiction, db_path, doc_pg_from, doc_pg_to, text) %>%
+    mutate(json = pmap(., list) %>% map_chr(toJSON, auto_unbox = TRUE))
+#     mutate(json = pmap(., list),
+#            json = map_chr(json, l2json))
 
 
-fl <- "output/text/doccano-test.jsonl"
-file.remove(fl)
-file.create(fl)
-
-# con <- file("output/text/doccano-test.jsonl")
-# for (i in 1:nrow(tmp)) cat(tmp$json[i], "\n", file=fl, append=TRUE)
-walk(tmp$json, cat, "\n", file="output/text/doccano-test.jsonl", append=TRUE)
-# close(con)
+fl <- "output/doccano-json/sample-20210719.jsonl"
+if (file.exists(fl)) file.remove(fl)
+walk(formatted$json, cat, "\n", file = fl, append = TRUE)
 
     pluck("json", 1)
     "["(1, ) %>%
