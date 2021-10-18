@@ -31,6 +31,24 @@ orl_out_path := output/orleans/nocsc
 lc_db_path := PPACT/data/Calcasieu/Data Collected/Lake Charles Fire and Police Civil Service Board
 lc_out_path := output/lake_charles/lcfpcsb
 
+sulph_db_path := PPACT/data/Calcasieu/Data Collected/Sulphur/Sulphur Fire and Police Civil Service Board
+sulph_out_path := output/sulphur/sfpcsb
+
+harhn_db_path := PPACT/data/Jefferson/Data Collected/Harahan/Harahan Fire and Police Civil Service Board
+harhn_out_path := output/harahan/hfpcsb
+
+crnc_db_path := PPACT/data/Lafayette Parish/Data Collected/Carencro Fire and Police Civil Service Board
+crnc_out_path := output/carencro/cfpcsb
+
+ygvl_db_path := PPACT/data/Lafayette Parish/Data Collected/Youngsville/Youngsville Civil Service Board
+ygvl_out_path := output/youngsville/ycsb
+
+brsd_db_path := PPACT/data/Lafayette Parish/Data Collected/Broussard FPCSB
+brsd_out_path := output/broussard/bfpcsb
+
+bsir_db_path := PPACT/data/Bossier/Bossier Fire and Police Civil Service Board 
+bsir_out_path := output/bossier/bfpcsb
+
 token := ../../../share/creds/dropbox-auth-token.rds
 
 .PHONY: all clean
@@ -45,7 +63,13 @@ all: \
 	$(sldl_out_path)/index.csv \
 	$(ads_out_path)/index.csv \
 	$(orl_out_path)/index.csv \
-	$(lc_out_path)/index.csv
+	$(lc_out_path)/index.csv \
+	$(sulph_out_path)/index.csv \
+	$(harhn_out_path)/index.csv \
+	$(crnc_out_path)/index.csv \
+	$(ygvl_out_path)/index.csv \
+	$(brsd_out_path)/index.csv \
+	$(bsir_out_path)/index.csv
 
 $(orl_out_path)/index.csv: src/dl.R
 	-mkdir -p $(orl_out_path)
@@ -118,5 +142,47 @@ $(lc_out_path)/index.csv: src/dl.R
 		--path="$(lc_db_path)" \
 		--token="$(token)" \
 		--outdir="$(lc_out_path)"
+
+$(sulph_out_path)/index.csv: src/dl.R
+	-mkdir -p $(sulph_out_path)
+	Rscript --vanilla $< \
+		--path="$(sulph_db_path)" \
+		--token="$(token)" \
+		--outdir="$(sulph_out_path)"
+
+$(harhn_out_path)/index.csv: src/dl.R
+	-mkdir -p $(harhn_out_path)
+	Rscript --vanilla $< \
+		--path="$(harhn_db_path)" \
+		--token="$(token)" \
+		--outdir="$(harhn_out_path)"
+
+$(crnc_out_path)/index.csv: src/dl.R
+	-mkdir -p $(crnc_out_path)
+	Rscript --vanilla $< \
+		--path="$(crnc_db_path)" \
+		--token="$(token)" \
+		--outdir="$(crnc_out_path)"
+
+$(ygvl_out_path)/index.csv: src/dl.R
+	-mkdir -p $(ygvl_out_path)
+	Rscript --vanilla $< \
+		--path="$(ygvl_db_path)" \
+		--token="$(token)" \
+		--outdir="$(ygvl_out_path)"
+
+$(brsd_out_path)/index.csv: src/dl.R
+	-mkdir -p $(brsd_out_path)
+	Rscript --vanilla $< \
+		--path="$(brsd_db_path)" \
+		--token="$(token)" \
+		--outdir="$(brsd_out_path)"
+
+$(bsir_out_path)/index.csv: src/dl.R
+	-mkdir -p $(bsir_out_path)
+	Rscript --vanilla $< \
+		--path="$(bsir_db_path)" \
+		--token="$(token)" \
+		--outdir="$(bsir_out_path)"
 
 # done.

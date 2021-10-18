@@ -60,7 +60,7 @@ dateparse <- function(fn) {
         mutate( dt = case_when(
             str_detect(matchtype, "^ymd") ~ lubridate::ymd(match, quiet=TRUE),
             str_detect(matchtype, "^mdy") ~ lubridate::mdy(match, quiet=TRUE))) %>%
-        verify(!is.na(dt)) %>%
+        filter(!is.na(dt)) %>%
         mutate(
             month = lubridate::month(dt),
             day = lubridate::day(dt),
