@@ -40,6 +40,7 @@ txt <- ind %>%
 nms <- txt %>%
     filter(str_detect(text, "^IN RE\\:")) %>%
     mutate(name = str_replace(text, "IN RE\\:", "") %>% str_trim) %>%
+    filter(!str_detect(name, "Disciplinary Counsel")) %>%
     transmute(fileid,
               filename = str_replace(basename(filename), "\\.pdf", ""),
               extracted_name = name) %>%
@@ -49,8 +50,26 @@ ids <- txt %>%
     group_by(fileid) %>%
     summarise(text = paste(text, collapse = " ") %>% str_squish,
               .groups = "drop") %>%
-    filter(str_detect(text, "Bar Roll Number")) %>%
-    mutate(extracted_bar_nbr = str_match(text, "Bar Roll Number ([0-9]{5})")[,2])
+    filter(str_detect(text, "[Bb]ar [Rr]oll [Nn]umber")) %>%
+    mutate(extracted_bar_nbr = str_match(text, "[Bb]ar [Rr]oll [Nn]umber (is )?([0-9]{5})")[,3]) %>%
+    select(-text)
 
-nms %>% full_join(ids, by = "fileid") %>%
-    distinct(fileid, filename, extracted_name, extracted_bar_nbr)
+dockets <- txt %>%
+    group_by(fileid) %>%
+    summarise(text = paste(text, collapse = " ") %>% str_squish,
+              .groups = "drop") %>%
+    filter(str_detect(text, "(DOCKET )?(NO\\.)|(NUMBER\\:?)\\s*[0-9\\-A-Z]+")) %>%
+    mutate(extracted_dkt_nbr = str_match(text,  "((DOCKET )?(NO\\.)|(NUMBER\\:?))\\s*([0-9\\-A-Z]+)")[,6]) %>%
+    select(-text)
+
+
+# to do, resolve true (fileid) dupes
+nms %>%
+    full_join(ids, by = "fileid") %>%
+    full_join(dockets, by = "fileid") %>%
+    distinct(fileid, filename, extracted_name, extracted_bar_nbr, extracted_dkt_nbr) %>%
+    sample_n(15)
+    filter(is.na(extracted_dkt_nbr)) %>%
+    inner_join(ind %>% distinct(fileid, local_name), by = "fileid") %>%
+    select(fileid, local_name) %>%
+    mutate(local_name = file.path("../dl-dropbox", local_name))
