@@ -1,6 +1,13 @@
 # vim: set ts=4 sts=0 sw=4 si fenc=utf-8 et:
 # vim: set fdm=marker fmr={{{,}}} fdl=0 foldcolumn=4:
 
+# NOTES:
+#    - vivian: no hearings identified
+#    - orleans: no hearings identified
+#    - harahan: less structured, will require more thought to parse
+#    - addis: fileid 3dcf07f mentions suspension of
+#             "a police officer" decided in executive session
+
 # load libs {{{
 pacman::p_load(
     argparse,
@@ -20,6 +27,9 @@ args <- parser$parse_args()
 # }}}
 
 # helpers{{{
+dt_pattern <- paste0("^(", paste0("(", month.name, ")", collapse="|"), ")",
+                     " [0-9]{1,2}, [0-9]{4}")
+
 allcaps <- function(string) {
     str_detect(string, "[A-Z]") & !str_detect(string, "[a-z]")
 }
@@ -151,6 +161,7 @@ sl <- sl_chunks %>%
     left_join(sl_hrg_flg, by = c("docid", "chunkno")) %>%
     replace_na(list(hearing = FALSE)) %>%
     mutate(linetype = case_when(
+        docpg == 1 & lineno <=25 & str_detect(text, dt_pattern) ~ "meeting_header",
         hearing & chunk_title == text ~ "hearing_header",
         hearing ~ "hearing",
         TRUE ~ "other")) %>%
@@ -210,8 +221,132 @@ knr <- knr_mtgs %>%
 
 # }}}
 
-classes <- bind_rows(ww, ebr, la, mv, sl, knr_hearing, knr) %>%
-    select(docid, docpg, lineno, linetype) %>%
+# orleans {{{
+# doclines %>%
+#     filter(f_region == "orleans") %>%
+#     chunk(pattern = "^Item #")
+# }}}
+
+# lake charles {{{
+lc_chunks <- doclines %>%
+    filter(f_region == "lake_charles") %>%
+    chunk(pattern = "(^[^A-Za-z]{2,})|(on the agenda)")
+
+lc_flag <- lc_chunks %>%
+    group_by(fileid, pageno, chunkno) %>%
+    summarise(text = paste(text, collapse = " "),
+              min_line = min(lineno),
+              .groups = "drop") %>%
+    filter(str_detect(text, "public hearing"),
+           str_detect(text, "Lake Charles Police Department")) %>%
+    transmute(fileid, pageno, chunkno, min_line, hearing = TRUE)
+
+lc <- lc_chunks %>%
+    left_join(lc_flag, by = c("fileid", "pageno", "chunkno")) %>%
+    mutate(linetype = case_when(
+            hearing && lineno == min_line ~ "hearing_header",
+            hearing ~ "hearing",
+            chunkno == 0 & lineno < 10 ~ "meeting_header",
+            TRUE ~ "other")) %>%
+    distinct(fileid, pageno, docid, docpg, lineno, linetype)
+# }}}
+
+# bossier {{{
+bossier_chunks <- doclines %>%
+    filter(f_region == "bossier") %>%
+    chunk(pattern = "^([IVX]+\\.)|^([0-9]+\\.)")
+
+bossier_flag <- bossier_chunks %>%
+    group_by(fileid, chunkno) %>%
+    summarise(text = paste(text, collapse = " ") %>% str_squish,
+              .groups = "drop") %>%
+    filter(str_detect(text, regex("appeal hearing", ignore_case = T))) %>%
+    transmute(fileid, chunkno, hearing = T)
+
+bsr <- bossier_chunks %>%
+    left_join(bossier_flag, by = c("fileid", "chunkno")) %>%
+    mutate(csb = str_detect(text, "^CIVIL SERVICE BOARD"),
+           dt = str_detect(text, regex(dt_pattern, ignore_case = T))) %>%
+    mutate(linetype = case_when(
+        docpg == 1 & (csb | dt) ~ "meeting_header",
+        hearing & text == chunk_title ~ "hearing_header",
+        hearing ~ "hearing",
+        TRUE ~ "other")) %>%
+    distinct(fileid, pageno, docid, docpg, lineno, linetype)
+# }}}
+
+# note: seems like sulphur keeps disciplinary appeal hearings in separate docs
+# sulphur {{{
+slph <- doclines %>%
+    filter(f_region == "sulphur") %>%
+    chunk(pattern = regex("^appeal hearing$", ignore_case = TRUE)) %>%
+    mutate(hearing = str_detect(chunk_title, regex("^appeal hearing$"))) %>%
+    group_by(docid) %>%
+    mutate(linetype = case_when(
+        docpg == 1 & lineno < 10 ~ "meeting_header",
+        hearing & text == chunk_title ~ "hearing_header",
+        hearing ~ "hearing",
+        TRUE ~ "other")) %>%
+    distinct(fileid, pageno, docid, docpg, lineno, linetype)
+# }}}
+
+# harahan ??? {{{
+# doclines %>%
+#     filter(f_region == "harahan") %>%
+#     filter(str_detect(text, regex("giglio", ignore_case = T))) %>%
+#     pluck("text")
+#     sample_n(15) %>% select(text)
+# }}}
+
+# youngsville {{{
+yvl_chunks <- doclines %>%
+    filter(f_region == "youngsville") %>%
+    chunk(pattern = regex("^AGENDA ITEM", ignore_case = TRUE))
+
+yvl <- yvl_chunks %>%
+    mutate(hearing = str_detect(chunk_title, regex("appeal hearing"))) %>%
+    mutate(linetype = case_when(
+        chunkno == 0 ~ "meeting_header",
+        hearing & chunk_title == text ~ "hearing_header",
+        hearing ~ "hearing",
+        TRUE ~ "other")) %>%
+    distinct(fileid, pageno, docid, docpg, lineno, linetype)
+
+# }}}
+
+# carencro {{{
+crn <- doclines %>%
+    filter(f_region == "carencro") %>%
+    chunk(pattern = "^[a-z0-9]\\.") %>%
+    mutate(hearing = str_detect(chunk_title, regex("appeal", ignore_case = T))) %>%
+    mutate(linetype = case_when(
+        docpg == 1 & lineno <= 5 ~ "meeting_header",
+        hearing & chunk_title == text ~ "hearing_header",
+        hearing ~ "hearing",
+        TRUE ~ "other")) %>%
+    distinct(fileid, pageno, docid, docpg, lineno, linetype)
+# }}}
+
+# broussard {{{
+brs <- doclines %>%
+    filter(f_region == "broussard") %>%
+    mutate(hrg_start = str_detect(text, regex("appeal hearing", ignore_case = T))) %>%
+    arrange(docid, docpg, lineno) %>%
+    group_by(docid) %>%
+    mutate(hearing = cummax(hrg_start)) %>%
+    ungroup %>%
+    mutate(linetype = case_when(
+        docpg == 1 & lineno <= 7 ~ "meeting_header",
+        hrg_start ~ "hearing_header",
+        hearing > 0 ~ "hearing",
+        TRUE ~ "other")) %>%
+    distinct(fileid, pageno, docid, docpg, lineno, linetype)
+# }}}
+
+
+classes <- bind_rows(ww, ebr, la, mv, sl, knr_hearing,
+                     knr, lc, bsr, slph, yvl, crn, brs) %>%
+    select(fileid, pageno, docid, docpg, lineno, linetype) %>%
     arrange(docid, docpg, lineno) %>%
     group_by(docid, docpg) %>%
     mutate(tofill = lead(linetype) == "hearing_header" &
