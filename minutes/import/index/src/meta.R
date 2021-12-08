@@ -84,6 +84,13 @@ out <- ind %>%
            fileid   = str_sub(filesha1, 1, 7)) %>%
     mutate(fn = basename(filename)) %>%
     mutate(file_category = case_when(
+            str_detect(filename,
+            regex("(receipt)|(invoice)|(transa)", ignore_case = T)) ~ "receipt",
+            region == "broussard"         ~ "minutes",
+            region == "lake_charles" &
+                dtct(fn, "records")       ~ "minutes",
+            dtct(fn,"carencro-municipal") ~ "minutes",
+            dtct(fn,"sulphur civil service")~ "minutes",
             dtct(fn, "minutes")           ~ "minutes",
             dtct(fn, "meeting min")       ~ "minutes",
             #             dtct(fn, "cs board mtg")      ~ "minutes",

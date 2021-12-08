@@ -39,8 +39,12 @@ heur <- feats %>%
                 TRUE ~ "continuation"), .groups="drop")
 
 out <- feats %>%
-    distinct(fileid, pageno) %>%
-    left_join(heur, by=c("fileid", "pageno")) %>%
+    distinct(fileid, f_region, pageno) %>%
+    left_join(heur, by = c("fileid", "pageno")) %>%
+    mutate(pagetype = case_when(
+            !is.na(pagetype) ~ pagetype,
+            f_region == "bossier" & pageno == 1 ~ "meeting",
+            f_region == "bossier" & pageno > 1 ~ "continuation")) %>%
     replace_na(list(pagetype="continuation"))
 
 log_info("performance on labeled data")
@@ -50,7 +54,7 @@ out %>%
 
 log_info("summary by jurisdiction")
 distinct(feats, fileid, pageno, f_region) %>%
-    inner_join(out, by = c("fileid", "pageno")) %>%
+    inner_join(out %>% select(-f_region), by = c("fileid", "pageno")) %>%
     count(f_region, pagetype) %>%
     pivot_wider(names_from = pagetype, values_from = n, values_fill = 0L)
 
