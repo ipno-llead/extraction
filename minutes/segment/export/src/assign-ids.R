@@ -28,8 +28,8 @@ padpaste <- function(pg, line) {
 
 mins <- read_parquet(args$docs)
 labs <- read_parquet(args$labs) %>%
-    rename(linetype = label,
-           linetype_conf = marginal)
+    rename(linetype = label)
+    #     rename(linetype = label, linetype_conf = marginal)
 
 docs <- mins %>%
     inner_join(labs, by = c("docid", "docpg", "lineno")) %>%

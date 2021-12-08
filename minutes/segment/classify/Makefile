@@ -5,22 +5,23 @@
 # Copyright:   2021, HRDAG, GPL v2 or later
 # =========================================
 
-data   := ../features/export/output/minutes-features.parquet
-model  := ../train/output/line-classifier.crfsuite
-output := output/line-labels.parquet
-truth  := ../import/output/training-data.parquet
-src    := src/crf.R
+data    := ../features/export/output/minutes-features.parquet
+model   := ../train/output/line-classifier.crfsuite
+#crf_output := output/line-labels.parquet
+truth   := ../import/output/training-data.parquet
+hur_src := src/heuristic.R
+crf_src := src/crf.R
 
-heuristic_out := output/heuristic-labels.parquet
+hur_out := output/line-labels.parquet
 
 .PHONY: all clean
 
-all: $(output) $(heuristic_out)
+all: $(hur_out)
 
 clean: 
 	-rm -r output/*
 
-$(output): $(src) $(data) $(model)
+$(crf_output): $(crf_src) $(data) $(model)
 	-mkdir output
 	Rscript --vanilla $< \
 		--data=$(data) \
@@ -28,7 +29,7 @@ $(output): $(src) $(data) $(model)
 		--truth=$(truth) \
 		--output=$@ &> output/log.txt
 
-$(heuristic_out): src/heuristic.R $(data)
+$(hur_out): src/heuristic.R $(data)
 	-mkdir output
 	Rscript --vanilla $< \
 		--input=$(data) \
