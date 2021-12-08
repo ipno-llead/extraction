@@ -10,10 +10,12 @@ pacman::p_load(
     argparse,
     arrow,
     dplyr,
+    jsonlite,
     pdftools,
     purrr,
     readr,
     stringr,
+    stringdist,
     tidyr
 )
 # }}}
@@ -25,26 +27,40 @@ parser$add_argument("--pdfpath", default = "../dl-dropbox")
 args <- parser$parse_args()
 # }}}
 
+strdist <- function(string1, string2) {
+    stringdist(str_to_lower(string1) %>% str_replace_all("[^a-z ]", ""),
+               str_to_lower(string2) %>% str_replace_all("[^a-z ]", ""),
+               method = "cosine", q = 3)
+}
+
+
 ind <- read_delim(args$input, delim = "|",
-                  col_types = cols(.default = col_character()))
+                  col_types = cols(.default = col_character())) %>%
+    mutate(filename = str_replace(basename(local_name), "\\.pdf", "")) %>%
+    group_by(fileid) %>%
+    mutate(duplicate_file = n_distinct(local_name) > 1) %>% ungroup
 
 txt <- ind %>%
-    select(fileid, filename = local_name) %>%
-    mutate(filename = file.path(args$pdfpath, filename)) %>%
-    mutate(text = map(filename, pdf_text)) %>%
-    unnest(text) %>%
+    select(fileid, local_name, filename) %>%
+    mutate(path = file.path(args$pdfpath, local_name)) %>%
+    mutate(text = map(path, pdf_text)) %>%
+    mutate(pageno = map(text, seq_along)) %>%
+    unnest(c(text, pageno)) %>%
     mutate(text = str_split(text, "\n")) %>%
-    unnest(text) %>% mutate(text = str_trim(text)) %>%
-    filter(text != "")
+    mutate(lineno = map(text, seq_along)) %>%
+    unnest(c(text, lineno)) %>% mutate(text = str_trim(text)) %>%
+    filter(text != "") %>%
+    select(fileid, filename, pageno, lineno, text)
 
 nms <- txt %>%
     filter(str_detect(text, "^IN RE\\:")) %>%
-    mutate(name = str_replace(text, "IN RE\\:", "") %>% str_trim) %>%
-    filter(!str_detect(name, "Disciplinary Counsel")) %>%
-    transmute(fileid,
-              filename = str_replace(basename(filename), "\\.pdf", ""),
-              extracted_name = name) %>%
-    distinct
+    mutate(extracted_name = str_replace(text, "IN RE\\:", "") %>% str_trim) %>%
+    filter(!str_detect(extracted_name, "Disciplinary Counsel")) %>%
+    transmute(fileid, filename, extracted_name) %>%
+    distinct %>%
+    mutate(similarity = 1 - strdist(filename, extracted_name)) %>%
+    ungroup %>% mutate(matches_filename = similarity > .25) %>%
+    select(-filename, -similarity)
 
 ids <- txt %>%
     group_by(fileid) %>%
@@ -63,13 +79,73 @@ dockets <- txt %>%
     select(-text)
 
 
-# to do, resolve true (fileid) dupes
-nms %>%
-    full_join(ids, by = "fileid") %>%
-    full_join(dockets, by = "fileid") %>%
-    distinct(fileid, filename, extracted_name, extracted_bar_nbr, extracted_dkt_nbr) %>%
-    sample_n(15)
-    filter(is.na(extracted_dkt_nbr)) %>%
-    inner_join(ind %>% distinct(fileid, local_name), by = "fileid") %>%
-    select(fileid, local_name) %>%
-    mutate(local_name = file.path("../dl-dropbox", local_name))
+out <- ind %>%
+    distinct(fileid, filename, dropbox = db_path, duplicate_file) %>%
+    left_join(nms, by = "fileid") %>%
+    left_join(ids, by = "fileid") %>%
+    left_join(dockets, by = "fileid") %>%
+    distinct(fileid, filename, dropbox, duplicate_file,
+             extracted_name, extracted_bar_nbr, extracted_dkt_nbr) %>%
+    group_by(fileid, filename, dropbox) %>%
+    summarise(duplicate_file = unique(duplicate_file),
+              extracted_name = paste0(unique(extracted_name), collapse = " ||| "),
+              extracted_bar_nbr = unique(extracted_bar_nbr),
+              extracted_dkt_nbr = unique(extracted_dkt_nbr),
+              .groups = "drop")
+
+
+
+labs <- c(
+    "CONCLUSION",
+    "INTRODUCTION",
+    "PROCEDURAL HISTORY",
+    "DISCUSSION",
+    "DECREE",
+    #     "RECOMMENDATION",
+    #     "RECOMMENDATION TO THE LOUISIANA SUPREME COURT",
+    #     "FOR THE ADJUDICATIVE COMMITTEE",
+    "FORMAL CHARGES",
+    "EVIDENCE",
+    "LAW AND FINDINGS OF FACT",
+    "BACKGROUND AND PROCEDURAL HISTORY",
+    "INTRODUCTION AND PROCEDURAL HISTORY",
+    "DISSENT",
+    "FOR THE COMMITTEE",
+    "ODC EXHIBITS",
+    "UNDERLYING FACTS",
+    "UNDERLYING FACTS AND PROCEDURAL HISTORY",
+    "RULES VIOLATED",
+    "APPENDIX")
+
+
+lablocs <- txt %>%
+    mutate(map_dfc(labs, ~str_detect(text, .))) %>%
+    mutate(f = str_detect(text, "^[XIV]+\\.")) %>%
+    pivot_longer(cols = c(-fileid, -filename, -pageno, -lineno, -text)) %>%
+    filter(value) %>%
+    transmute(fileid, pageno, lineno, lab = TRUE) %>%
+    distinct
+
+chunked <- txt %>%
+    left_join(lablocs, by = c("fileid", "pageno", "lineno")) %>%
+    replace_na(list(lab = F)) %>%
+    group_by(fileid) %>%
+    mutate(section_id = cumsum(lab)) %>%
+    group_by(fileid, section_id) %>%
+    summarise(text = paste(text, collapse = "\n"), .groups = "drop") %>%
+    mutate(text = if_else(section_id == 0,
+                          text,
+                          str_replace_all(text, "\\n", " ") %>% str_squish))
+
+json <- out %>%
+    inner_join(chunked, by = "fileid") %>%
+    mutate(section_id = sprintf("%s-%03d", fileid, section_id)) %>%
+    select(fileid, filename, duplicate_file, section_id,
+           dropbox, extracted_name, extracted_bar_nbr,
+           extracted_dkt_nbr, text) %>%
+    mutate(json = pmap(., list) %>% map_chr(toJSON, auto_unbox = TRUE)) %>%
+    arrange(fileid, filename, section_id)
+
+fl <- "output/prosecutors-doccano.jsonl"
+if (file.exists(fl)) file.remove(fl)
+walk(json$json, cat, "\n", file = fl, append = TRUE)
