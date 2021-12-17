@@ -51,7 +51,7 @@ rptout <- function(doc) {
     cat("\n")
     cat("MEETING INFO", "\n")
     cat("============", "\n")
-    cat("jurisdiction:", doc$jurisdiction, "\n")
+    cat("agency:", doc$agency, "\n")
     if (!is.na(doc$mtg_year)) {
         cat("meeting date: ")
         cat(doc$mtg_year, doc$mtg_month, doc$mtg_day, sep="-")

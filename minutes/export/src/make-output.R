@@ -29,6 +29,7 @@ hrg <- read_parquet(args$hearings)
 
 hearings <- hrg %>%
     transmute(docid,
+              hrg_type,
               year = mtg_year,
               month = mtg_month,
               day = mtg_day,
@@ -40,7 +41,7 @@ hearings <- hrg %>%
               title = str_glue("Appeal hearing: {hrg_accused}",
                                " on {str_c(year, month, day, sep='-')}",
                                .na = "(unknown)"),
-              agency = NA_character_)
+              agency)
 
 out <- ind %>%
     inner_join(hearings, by = "docid")

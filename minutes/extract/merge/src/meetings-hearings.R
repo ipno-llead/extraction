@@ -44,13 +44,13 @@ hrgs <- docs %>%
 
 doc_xref <- docs %>% group_by(docid) %>%
     mutate(fileid = unique(fileid),
-           jurisdiction = unique(f_region),
+           agency = unique(agency),
            doc_pg_from = min(pageno),
            doc_pg_to = max(pageno)) %>%
     group_by(docid, hrgno) %>%
     mutate(hrg_pg_from = min(pageno), hrg_pg_to = max(pageno)) %>%
     ungroup %>%
-    distinct(docid, fileid, jurisdiction,
+    distinct(docid, fileid, agency,
              doc_pg_from, doc_pg_to,
              hrgno, hrg_pg_from, hrg_pg_to) %>%
     filter(!is.na(hrgno))
@@ -61,7 +61,7 @@ out <- doc_xref %>%
     left_join(hrg_tp, by = c("docid", "hrgno")) %>%
     left_join(hrg_acc, by = c("docid", "hrgno")) %>%
     left_join(hrgs, by = c("fileid", "docid", "hrgno")) %>%
-    select(docid, fileid, jurisdiction,
+    select(docid, fileid, agency,
            starts_with("doc_"),
            starts_with("mtg_"),
            hrgno,

@@ -52,7 +52,7 @@ scraped_dates <- docs %>%
 
 # output scraped date if possible, fall back to date from filename {{{
 out <- docs %>%
-    distinct(docid, jurisdiction = f_region, f_year, f_month, f_day) %>%
+    distinct(docid, f_year, f_month, f_day) %>%
     left_join(scraped_dates, by = "docid") %>%
     replace_na(list(scraped = FALSE)) %>%
     mutate(mtg_year  = if_else(scraped, s_year, f_year),

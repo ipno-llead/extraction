@@ -14,8 +14,8 @@ pacman::p_load(
 
 # args {{{
 parser <- ArgumentParser()
-parser$add_argument("--personnel", default = "output/working/personnel.csv")
-parser$add_argument("--event", default = "output/working/event.csv")
+parser$add_argument("--personnel")
+parser$add_argument("--event")
 parser$add_argument("--output")
 args <- parser$parse_args()
 # }}}
@@ -44,7 +44,8 @@ event <- read_csv(args$event, col_types = cols(.default = col_character()))
 
 # events -> officer start/stop dates {{{
 ofcr_timeline <- event %>%
-    filter(kind %in% c("officer_hire", "officer_left")) %>%
+    filter(kind %in% c("officer_hire", "officer_left"),
+           !is.na(year), !is.na(month), !is.na(day)) %>%
     assert(not_na, year, month, day) %>%
     mutate(event_dt = as.Date(paste(year, month, day, sep="-"))) %>%
     select(uid, event_uid, event_dt, kind, agency) %>%

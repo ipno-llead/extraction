@@ -36,8 +36,7 @@ smartmatch <- function(string, pattern) {
 # }}}
 
 hearings <- read_parquet(args$input) %>%
-    filter(linetype %in% c("hearing_header", "hearing"),
-           hrgno > 0) %>%
+    filter(linetype %in% c("hearing_header", "hearing"), !is.na(hrgno)) %>%
     arrange(docid, docpg, lineno) %>%
     group_by(docid, hrgno) %>%
     slice_head(n = 7) %>%

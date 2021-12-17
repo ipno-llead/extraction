@@ -36,7 +36,7 @@ make_pdf <- function(input, pages, output) {
 }
 
 driver <- hrgs %>%
-    filter(!is.na(hrg_acc_uid),
+    filter(!is.na(hrg_acc_uid) |
            hrg_type %in% c("police", "unknown")) %>%
     select(docid, fileid, doc_pg_from, doc_pg_to) %>%
     distinct %>%

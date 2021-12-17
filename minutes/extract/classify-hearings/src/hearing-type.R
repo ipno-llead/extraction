@@ -28,7 +28,7 @@ dtct <- function(string, pattern) {
 
 hearings <- read_parquet(args$input) %>%
     filter(linetype %in% c("hearing_header", "hearing"),
-           hrgno > 0)
+           !is.na(hrgno))
 
 log_info(nrow(distinct(hearings, docid, hrgno)), " distinct hearings to start")
 
