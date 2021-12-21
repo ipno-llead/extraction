@@ -25,14 +25,13 @@ args <- parser$parse_args()
 # }}}
 
 mins <- read_parquet(args$input)
-agencies <- read_delim(args$agencies, delim = "|", col_types = "ccc") %>%
-    distinct(jurisdiction, agency)
+agencies <- read_delim(args$agencies, delim = "|", col_types = "ccc")
 
 out <- mins %>%
-    inner_join(agencies, by = c("f_region" = "jurisdiction")) %>%
+    rename(jurisdiction = f_region) %>%
+    inner_join(agencies, by = "jurisdiction") %>%
     verify(nrow(.) == nrow(mins)) %>%
-    mutate(agency = coalesce(agency, f_region)) %>%
-    select(-f_region)
+    mutate(agency_slug = coalesce(agency_slug, jurisdiction))
 
 write_parquet(out, args$output)
 

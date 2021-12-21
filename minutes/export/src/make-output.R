@@ -43,8 +43,13 @@ hearings <- hrg %>%
                                .na = "(unknown)"),
               agency)
 
+hearing_agencies <- hearings %>%
+    filter(hrg_type != "fire") %>%
+    mutate(matched_uid = NA)
+
 out <- ind %>%
-    inner_join(hearings, by = "docid")
+    inner_join(bind_rows(mutate(hearings, agency = NA), hearing_agencies),
+               by = "docid")
 
 write_csv(out, args$output, na = "")
 

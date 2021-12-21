@@ -44,7 +44,7 @@ hrgs <- docs %>%
 
 doc_xref <- docs %>% group_by(docid) %>%
     mutate(fileid = unique(fileid),
-           agency = unique(agency),
+           agency = unique(agency_slug),
            doc_pg_from = min(pageno),
            doc_pg_to = max(pageno)) %>%
     group_by(docid, hrgno) %>%

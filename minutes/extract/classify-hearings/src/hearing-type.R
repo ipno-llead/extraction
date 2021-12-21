@@ -39,17 +39,19 @@ out <- hearings %>%
     slice_head(n = 7) %>%
     summarise(text = paste(text, collapse = " ") %>% str_squish,
               .groups = "drop") %>%
+    #     pluck("text") %>% dtct("employed by (.+) fire department")
     mutate(fire =
             dtct(text, "firefighter") |
             dtct(text,"fire captain") |
             dtct(text,"fire chief") |
+            dtct(text,"fire communications officer") |
             dtct(text,"fire driver") |
             dtct(text, "\\(fire department\\)") |
             dtct(text, "Fire") |
             dtct(text, "employed by (.+) fire department"),
         police =
             dtct(text, "police officer") |
-            dtct(text, "officer") |
+            #             dtct(text, "officer") |
             dtct(text, "public safety") |
             str_detect(text, "Police") |
             str_detect(text, "Corrections") |
