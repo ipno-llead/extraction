@@ -27,7 +27,7 @@ wrgl: $(output)
 	wrgl init --wrgl-dir $(wrgldir)
 	wrgl remote add origin https://hub.wrgl.co/api/users/ipno/repos/documents --wrgl-dir $(wrgldir)
 	wrgl pull main origin refs/heads/main:refs/heads/main --set-upstream --wrgl-dir $(wrgldir)
-	wrgl commit main $(output) "updated documents" -p "docid,hrg_no,matched_uid" --wrgl-dir $(wrgldir)
+	wrgl commit main $(output) "updated documents" -p "docid,hrg_no,matched_uid,agency" --wrgl-dir $(wrgldir)
 	wrgl push origin refs/heads/main:main --set-upstream --wrgl-dir $(wrgldir)
 
 #wrgl: $(wrgl_creds) $(output)
