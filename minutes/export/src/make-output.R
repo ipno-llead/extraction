@@ -49,7 +49,8 @@ hearing_agencies <- hearings %>%
 
 out <- ind %>%
     inner_join(bind_rows(mutate(hearings, agency = NA), hearing_agencies),
-               by = "docid")
+               by = "docid") %>%
+    filter(!is.na(matched_uid) | !is.na(agency))
 
 write_csv(out, args$output, na = "")
 
