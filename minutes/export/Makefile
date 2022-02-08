@@ -6,6 +6,7 @@
 hrgs := ../extract/export/output/hearings.parquet
 meta := ../import/export/output/metadata.csv
 docs := ../classify-pages/export/output/minutes.parquet
+wordtxt := ../import/worddoc-text/output/minutes-word.parquet
 
 db_token := ../../share/creds/dropbox-auth-token.rds
 
@@ -24,8 +25,8 @@ clean:
 	-rm -r output/*
 
 wrgl: $(output)
-	wrgl init --wrgl-dir $(wrgldir)
-	wrgl remote add origin https://hub.wrgl.co/api/users/ipno/repos/documents --wrgl-dir $(wrgldir)
+	-wrgl init --wrgl-dir $(wrgldir)
+	-wrgl remote add origin https://hub.wrgl.co/api/users/ipno/repos/documents --wrgl-dir $(wrgldir)
 	wrgl pull main origin refs/heads/main:refs/heads/main --set-upstream --wrgl-dir $(wrgldir)
 	wrgl commit main $(output) "updated documents" -p "docid,hrg_no,matched_uid,agency" --wrgl-dir $(wrgldir)
 	wrgl push origin refs/heads/main:main --set-upstream --wrgl-dir $(wrgldir)
@@ -62,6 +63,7 @@ $(pdf_index): src/subset-pdfs.R $(hrgs) $(meta)
 	Rscript --vanilla $< \
 		--hrgs=$(hrgs) \
 		--meta=$(meta) \
+		--wordtxt=$(wordtxt) \
 		--outputdir=output
 
 # done.

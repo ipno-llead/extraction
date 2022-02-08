@@ -28,10 +28,10 @@ ads_out_path := output/addis/atc
 orl_db_path := PPACT/data/Orleans/Data Collected/New Orleans Civil Service Commission
 orl_out_path := output/orleans/nocsc
 
-lc_db_path := PPACT/data/Calcasieu/Data Collected/Lake Charles Fire and Police Civil Service Board
+lc_db_path := PPACT/data/Calcasieu Parish/Data Collected/Lake Charles Fire and Police Civil Service Board
 lc_out_path := output/lake_charles/lcfpcsb
 
-sulph_db_path := PPACT/data/Calcasieu/Data Collected/Sulphur/Sulphur Fire and Police Civil Service Board
+sulph_db_path := PPACT/data/Calcasieu Parish/Data Collected/Sulphur/Sulphur Fire and Police Civil Service Board
 sulph_out_path := output/sulphur/sfpcsb
 
 harhn_db_path := PPACT/data/Jefferson/Data Collected/Harahan/Harahan Fire and Police Civil Service Board
@@ -46,8 +46,14 @@ ygvl_out_path := output/youngsville/ycsb
 brsd_db_path := PPACT/data/Lafayette Parish/Data Collected/Broussard FPCSB
 brsd_out_path := output/broussard/bfpcsb
 
-bsir_db_path := PPACT/data/Bossier/Bossier Fire and Police Civil Service Board 
+bsir_db_path := PPACT/data/Bossier Parish/Requested/Bossier Fire and Police Civil Service Board 
 bsir_out_path := output/bossier/bfpcsb
+
+shport_db_path := PPACT/data/Caddo Parish/Data Collected/Shreveport/Shreveport FPCSB
+shport_out_path := output/shreveport/fpcsb
+
+iberia_db_path := PPACT/data/Iberia Parish/Collected/Iberia SO/Minutes 
+iberia_out_path := output/iberia/ipso
 
 token := ../../../share/creds/dropbox-auth-token.rds
 
@@ -69,7 +75,10 @@ all: \
 	$(crnc_out_path)/index.csv \
 	$(ygvl_out_path)/index.csv \
 	$(brsd_out_path)/index.csv \
-	$(bsir_out_path)/index.csv
+	$(bsir_out_path)/index.csv \
+	$(shport_out_path)/index.csv \
+	$(iberia_out_path)/index.csv
+
 
 $(orl_out_path)/index.csv: src/dl.R
 	-mkdir -p $(orl_out_path)
@@ -184,5 +193,19 @@ $(bsir_out_path)/index.csv: src/dl.R
 		--path="$(bsir_db_path)" \
 		--token="$(token)" \
 		--outdir="$(bsir_out_path)"
+
+$(shport_out_path)/index.csv: src/dl.R
+	-mkdir -p $(shport_out_path)
+	Rscript --vanilla $< \
+		--path="$(shport_db_path)" \
+		--token="$(token)" \
+		--outdir="$(shport_out_path)"
+
+$(iberia_out_path)/index.csv: src/dl.R
+	-mkdir -p $(iberia_out_path)
+	Rscript --vanilla $< \
+		--path="$(iberia_db_path)" \
+		--token="$(token)" \
+		--outdir="$(iberia_out_path)"
 
 # done.

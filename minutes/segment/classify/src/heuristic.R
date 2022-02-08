@@ -343,9 +343,38 @@ brs <- doclines %>%
     distinct(fileid, pageno, docid, docpg, lineno, linetype)
 # }}}
 
+# shreveport {{{
+dtct <- function(string, pattern) str_detect(string, regex(pattern, ignore_case=T))
+shreve <- doclines %>% filter(f_region == "shreveport") %>%
+    arrange(docid, docpg, lineno) %>%
+    mutate(re_dkt = dtct(text, "docket"),
+           re_apl = dtct(text, "appeal from"),
+           re_suscom = dtct(text, "sustained complaint"),
+           re_police = dtct(text, "police"),
+           re_motion = dtct(text, "motion was made")) %>%
+    group_by(docid, docpg) %>%
+    mutate(hrg_start =
+            (re_dkt | re_apl | re_suscom) & (re_police | lead(re_police)),
+           hrg_end = re_motion
+        ) %>%
+    mutate(linetype = case_when(
+        dtct(text, "ruling chart") ~ "other",
+        docpg == 1 & dtct(text, "roll call") ~ "other",
+        docpg == 1 & lineno <= 4 ~ "meeting_header",
+        dtct(text, "\\(appeals") ~ "other",
+        hrg_start ~ "hearing_header",
+        hrg_end ~ "hearing",
+        lag(hrg_start, default = FALSE) ~ "hearing",
+        lag(hrg_end, default = FALSE) ~ "other",
+        TRUE ~ NA_character_)) %>%
+    fill(linetype, .direction = "down") %>%
+    ungroup %>%
+    replace_na(list(linetype = "other")) %>%
+    distinct(fileid, pageno, docid, docpg, lineno, linetype)
+# }}}
 
 classes <- bind_rows(ww, ebr, la, mv, sl, knr_hearing,
-                     knr, lc, bsr, slph, yvl, crn, brs) %>%
+                     knr, lc, bsr, slph, yvl, crn, brs, shreve) %>%
     select(fileid, pageno, docid, docpg, lineno, linetype) %>%
     arrange(docid, docpg, lineno) %>%
     group_by(docid, docpg) %>%

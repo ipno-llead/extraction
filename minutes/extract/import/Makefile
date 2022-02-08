@@ -26,8 +26,8 @@ force: ;
 # running this recipe as one line in order to set api creds as env. variables
 # only locally within the recipe
 output/%.csv: force
-	wrgl init --wrgl-dir output/$*
-	wrgl remote add origin https://hub.wrgl.co/api/users/ipno/repos/$* --wrgl-dir output/$*
+	-wrgl init --wrgl-dir output/$*
+	-wrgl remote add origin https://hub.wrgl.co/api/users/ipno/repos/$* --wrgl-dir output/$*
 	wrgl pull main origin refs/heads/main:refs/heads/main --set-upstream --wrgl-dir output/$*
 	wrgl export --wrgl-dir output/$* main > $@
 
