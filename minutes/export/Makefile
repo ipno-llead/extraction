@@ -6,7 +6,6 @@
 hrgs := ../extract/export/output/hearings.parquet
 meta := ../import/export/output/metadata.csv
 docs := ../classify-pages/export/output/minutes.parquet
-wordtxt := ../import/worddoc-text/output/minutes-word.parquet
 
 db_token := ../../share/creds/dropbox-auth-token.rds
 
@@ -30,14 +29,6 @@ wrgl: $(output)
 	wrgl pull main origin refs/heads/main:refs/heads/main --set-upstream --wrgl-dir $(wrgldir)
 	wrgl commit main $(output) "updated documents" -p "docid,hrg_no,matched_uid,agency" --wrgl-dir $(wrgldir)
 	wrgl push origin refs/heads/main:main --set-upstream --wrgl-dir $(wrgldir)
-
-#wrgl: $(wrgl_creds) $(output)
-#	set -o allexport ; source $(wrgl_creds) ; set +o allexport ;\
-#	$(wrglctl) login --apikey=$$WRGL_APIKEY;
-#	$(wrglctl) repos commit $(output) \
-#		@ipno/documents \
-#		"updated" \
-#		-p "docid,hrg_no,matched_uid"
 
 $(output): src/make-output.R $(db_index) $(hrgs)
 	-mkdir -p $(shell dirname $@)
@@ -63,7 +54,6 @@ $(pdf_index): src/subset-pdfs.R $(hrgs) $(meta)
 	Rscript --vanilla $< \
 		--hrgs=$(hrgs) \
 		--meta=$(meta) \
-		--wordtxt=$(wordtxt) \
 		--outputdir=output
 
 # done.
