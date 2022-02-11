@@ -351,11 +351,12 @@ shreve <- doclines %>% filter(f_region == "shreveport") %>%
            re_apl = dtct(text, "appeal from"),
            re_suscom = dtct(text, "sustained complaint"),
            re_police = dtct(text, "police"),
-           re_motion = dtct(text, "motion was made")) %>%
+           re_motion = str_detect(text, "^Motion"),
+           re_board = str_detect(text, "^Board voted")) %>%
     group_by(docid, docpg) %>%
     mutate(hrg_start =
             (re_dkt | re_apl | re_suscom) & (re_police | lead(re_police)),
-           hrg_end = re_motion
+           hrg_end = re_motion | lag(re_board)
         ) %>%
     mutate(linetype = case_when(
         dtct(text, "ruling chart") ~ "other",
