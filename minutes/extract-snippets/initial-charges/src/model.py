@@ -1,6 +1,6 @@
 import pandas as pd
 from fastai.text.all import *
-torch.set_num_threads(11)
+#torch.set_num_threads(11)
 
 df = pd.read_parquet("output/initial-charges.parquet")
 

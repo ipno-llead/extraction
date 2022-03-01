@@ -3,9 +3,15 @@
 
 .PHONY: all clean
 
-jsdir := output/jsonl
+hrgs := ../../extract/export/output/hearings.parquet
 
-all: output/phase1.parquet output/phase2.parquet
+jsdir := output/jsonl
+trndir := output/training
+
+all: $(trndir)/phase1.parquet \
+	$(trndir)/phase2.parquet \
+	output/hrg-sentences.parquet \
+	output/phase2-all-labels.parquet
 
 clean: 
 	-rm -r output/*
@@ -15,9 +21,21 @@ $(jsdir)/%/done.touch: input/%.zip
 	unzip input/$*.zip -d $(jsdir)/$*
 	touch $@
 
-output/%.parquet: src/import.R $(jsdir)/%/done.touch
+$(trndir)/%.parquet: src/import.R $(jsdir)/%/done.touch
+	-mkdir -p $(trndir)
 	Rscript --vanilla $< \
 		--inputdir=$(jsdir)/$* \
+		--output=$@
+
+output/hrg-sentences.parquet: src/prep-sents.R $(hrgs)
+	-mkdir output
+	Rscript --vanilla $< \
+		--input=$(hrgs) \
+		--output=$@
+
+output/%-all-labels.parquet: src/prep-labs.R output/training/%.parquet
+	Rscript --vanilla $< \
+		--input=output/training/$*.parquet \
 		--output=$@
 
 # done.
