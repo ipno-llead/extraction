@@ -35,7 +35,7 @@ roster  <- read_parquet(args$roster)
 dates   <- read_parquet(args$dates)
 classes <- read_parquet(args$classes)
 mtg_jur <- read_parquet(args$docxref) %>%
-    distinct(docid, jurisdiction)
+    distinct(docid, jurisdiction, agency, agency_slug)
 
 # tokenize names to aid matching {{{
 extracted_tokens <- xtract %>%
@@ -44,8 +44,8 @@ extracted_tokens <- xtract %>%
     mutate(mtg_date = make_date(mtg_year, mtg_month, mtg_day)) %>%
     mutate(hrg_accused = str_to_lower(hrg_accused),
            tok_acc = str_split(hrg_accused, boundary("word"))) %>%
-    select(docid, jurisdiction, hrgno, mtg_date,
-           hrg_accused, tok_acc) %>%
+    select(docid, jurisdiction, agency_slug, agency,
+           hrgno, mtg_date, hrg_accused, tok_acc) %>%
     unnest(tok_acc)
 
 roster_tokens <- roster %>%
@@ -74,7 +74,8 @@ matcher <- extracted_tokens %>%
     inner_join(roster_tokens, by = c("tok_acc" = "token")) %>%
     mutate(namedist = stringdist(hrg_accused, ros_name,
                                  method="jaccard", q=4),
-           jurdist = stringdist(tolower(jurisdiction), tolower(ros_agency),
+           jurdist = stringdist(tolower(agency_slug),
+                                tolower(str_replace_all(ros_agency, "\\s+", "-")),
                                 method="jaccard", q=4),
            dt_in_range = mtg_date >= start & mtg_date <= end)
 

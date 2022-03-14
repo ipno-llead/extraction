@@ -17,9 +17,8 @@ pacman::p_load(
 
 # args {{{
 parser <- ArgumentParser()
-parser$add_argument("--input",
-                    default = "../../segment/export/output/minutes.parquet")
-parser$add_argument("--agencies", default = "hand/agencies.csv")
+parser$add_argument("--input")
+parser$add_argument("--agencies")
 parser$add_argument("--output")
 args <- parser$parse_args()
 # }}}

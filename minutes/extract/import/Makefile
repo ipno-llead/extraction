@@ -8,6 +8,7 @@ input_meta := ../../import/export/output/metadata.csv
 
 input_personnel := output/personnel.csv
 input_event := output/event.csv
+agencies := hand/agencies.csv
 
 output_mins := output/minutes.parquet
 output_meta := output/metadata.csv
@@ -28,13 +29,14 @@ force: ;
 output/%.csv: force
 	-wrgl init --wrgl-dir output/$*
 	-wrgl remote add origin https://hub.wrgl.co/api/users/ipno/repos/$* --wrgl-dir output/$*
-	wrgl pull main origin refs/heads/main:refs/heads/main --set-upstream --wrgl-dir output/$*
+	wrgl pull main origin refs/heads/main:refs/heads/main --set-upstream --wrgl-dir output/$* --depth 1
 	wrgl export --wrgl-dir output/$* main > $@
 
-$(output_mins): src/standardize-agency.R $(input_mins)
+$(output_mins): src/standardize-agency.R $(input_mins) $(agencies)
 	-mkdir output
 	Rscript --vanilla $< \
 		--input=$(input_mins) \
+		--agencies=$(agencies) \
 		--output=$@
 
 $(output_meta): $(input_meta)

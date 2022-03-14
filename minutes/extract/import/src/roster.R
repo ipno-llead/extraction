@@ -62,7 +62,7 @@ ofcr_timeline <- event %>%
 # }}}
 
 out <- pers %>%
-    select(uid, last_name, middle_name, middle_initial, first_name) %>%
+    transmute(uid, last_name, middle_name, middle_initial=NA_character_, first_name) %>%
     left_join(ofcr_timeline, by="uid")
 
 write_parquet(out, args$output)
