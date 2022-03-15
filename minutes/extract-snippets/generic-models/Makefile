@@ -12,17 +12,17 @@ score := src/score.py
 
 .PHONY: all
 
-all: $(model)
+all: $(scores)
 
 $(model): $(train) $(traindata)
 	-mkdir output
 	python3 $< \
 		--input=$(traindata) \
-		--modelout=$@
+		--modelout=snippet-classifier.pkl
 	
 $(scores): $(score) $(hrgdata) $(model)
 	python3 $< \
 		--data=$(hrgdata) \
 		--model=$(model) \
-		--output=$@
+		--scores=$@
 # done.

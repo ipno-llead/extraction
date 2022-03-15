@@ -37,24 +37,55 @@ process <- function(labs, index = INDEX) {
                       label = NA_character_))
     substrings <- str_sub(txt, start = labels[,1], end = labels[,2]) %>%
         str_trim
-    tibble(docid = docid, snippet = substrings, label = labels[,3])
+    tibble(docid = docid, hrgno = labs$hrgno, snippet = substrings, label = labels[,3])
 }
 
-imported_data <- tibble(inputfile = list.files("input",
+imported_data <- tibble(inputfile = list.files("input/phase1/",
                               pattern = "*.jsonl",
                               full.names = TRUE,
                               recursive = FALSE)) %>%
     mutate(data = map(inputfile, readLines)) %>%
     unnest(data) %>%
     mutate(data = map(data, fromJSON)) %>%
-    filter(map_int(data, length) == 8)
+    filter(map_int(data, length) == 14)
 
-imported_data %>%
+processed <- imported_data %>%
+    #     head(3) %>%
     #     mutate(fid = map(data, "fileid")) %>%
     #     filter(!map_lgl(fid, is.null)) %>% pluck("data", 1)
     mutate(data = map(data, process)) %>%
-    unnest(data) %>% distinct(docid, label, snippet) %>%
-    group_by(label) %>% summarise(n_doc = n_distinct(docid)) %>% arrange(desc(n_doc))
+    unnest(data) %>% distinct(docid, hrgno, inputfile, label, snippet)
+
+processed %>%
+    group_by(docid, hrgno) %>%
+    mutate(mult = n_distinct(label) > 1) %>%
+    ungroup %>% distinct(mult, docid, hrgno) %>%
+    group_by(mult) %>% summarise(n = n())
+
+    #     group_by(label) %>% summarise(n_doc = n_distinct(docid)) %>% arrange(desc(n_doc))
     select(-inputfile) %>%
     count(label, sort=T)
     sample_frac(1) %>% print(n=25)
+
+
+mults <- processed %>%
+    group_by(docid) %>%
+    summarise(mult = n_distinct(inputfile) > 1, .groups = "drop")
+
+processed %>% distinct(docid)
+processed %>% filter(label == "irrelevant_document") %>%
+    distinct(docid)
+
+processed %>%
+    inner_join(mults, by = "docid") %>%
+    filter(mult) %>%
+    #     filter(mult, label == "initial_discipline") %>%
+    arrange(docid, label, inputfile) %>%
+    nest(-docid) %>% sample_n(1)
+    group_by(label) %>%
+    summarise(ndoc = n_distinct(docid),
+              nrev = n_distinct(inputfile))
+              nmult = sum(mult))
+    group_by(docid) %>% filter(n_distinct(inputfile) > 1) %>%
+    filter(label == "accused_officer_name") %>% ungroup %>% arrange(docid) %>%
+    group_by(docid) %>% filter(n_distinct(snippet) > 1)

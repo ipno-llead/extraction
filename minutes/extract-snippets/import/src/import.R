@@ -19,8 +19,8 @@ pacman::p_load(
 
 # args {{{
 parser <- ArgumentParser()
-parser$add_argument("--inputdir", default = "input/phase2")
-parser$add_argument("--output", default = "output/phase2.parquet")
+parser$add_argument("--inputdir", default = "output/jsonl/phase2")
+parser$add_argument("--output")
 args <- parser$parse_args()
 # }}}
 
