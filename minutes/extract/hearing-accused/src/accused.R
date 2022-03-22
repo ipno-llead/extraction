@@ -41,6 +41,7 @@ hearings <- read_parquet(args$input) %>%
     group_by(docid, hrgno) %>%
     slice_head(n = 7) %>%
     ungroup
+
 re <- read_yaml(args$regexes)
 
 log_info(distinct(hearings, docid, hrgno) %>% nrow, " hearings to start")

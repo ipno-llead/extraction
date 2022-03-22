@@ -55,6 +55,15 @@ shport_out_path := output/shreveport/fpcsb
 iberia_db_path := PPACT/data/Iberia Parish/Collected/Iberia SO/Minutes 
 iberia_out_path := output/iberia/ipso
 
+greenwood_db_path := PPACT/data/Caddo Parish/Data Collected/Greenwood/Greenwood Civil Service Commission
+greenwood_out_path := output/greenwood/gcsc
+
+westmonroe_db_path := PPACT/data/Ouchita Parish/Data Collected/West Monroe FPCSB
+westmonroe_out_path := output/westmonroe/fpcsb
+
+monroe_db_path := PPACT/data/Ouchita Parish/Data Collected/Monroe FPCSB
+monroe_out_path := output/monroe/fpcsb
+
 token := ../../../share/creds/dropbox-auth-token.rds
 
 .PHONY: all clean
@@ -77,7 +86,11 @@ all: \
 	$(brsd_out_path)/index.csv \
 	$(bsir_out_path)/index.csv \
 	$(shport_out_path)/index.csv \
-	$(iberia_out_path)/index.csv
+	$(iberia_out_path)/index.csv \
+	$(greenwood_out_path)/index.csv \
+	$(westmonroe_out_path)/index.csv \
+	$(monroe_out_path)/index.csv
+
 
 
 $(orl_out_path)/index.csv: src/dl.R
@@ -207,5 +220,26 @@ $(iberia_out_path)/index.csv: src/dl.R
 		--path="$(iberia_db_path)" \
 		--token="$(token)" \
 		--outdir="$(iberia_out_path)"
+
+$(greenwood_out_path)/index.csv: src/dl.R
+	-mkdir -p $(greenwood_out_path)
+	Rscript --vanilla $< \
+		--path="$(greenwood_db_path)" \
+		--token="$(token)" \
+		--outdir="$(greenwood_out_path)"
+
+$(westmonroe_out_path)/index.csv: src/dl.R
+	-mkdir -p $(westmonroe_out_path)
+	Rscript --vanilla $< \
+		--path="$(westmonroe_db_path)" \
+		--token="$(token)" \
+		--outdir="$(westmonroe_out_path)"
+
+$(monroe_out_path)/index.csv: src/dl.R
+	-mkdir -p $(monroe_out_path)
+	Rscript --vanilla $< \
+		--path="$(monroe_db_path)" \
+		--token="$(token)" \
+		--outdir="$(monroe_out_path)"
 
 # done.

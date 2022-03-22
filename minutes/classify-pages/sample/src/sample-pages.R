@@ -21,7 +21,7 @@ parser <- ArgumentParser()
 parser$add_argument("--input", default = "../import/output/minutes.parquet")
 parser$add_argument("--meta", default = "../../import/index/output/metadata.csv")
 parser$add_argument("--frozendir", default = "frozen")
-parser$add_argument("--N", type="integer", default=5L)
+parser$add_argument("--N", type="integer", default=10L)
 parser$add_argument("--outstub", default="output/sampled-20210331")
 args <- parser$parse_args()
 # }}}
@@ -48,12 +48,25 @@ if (!dir.exists(working_dir)) dir.create(working_dir, recursive=TRUE)
 pgs <- read_parquet(args$input) %>%
     anti_join(already, by=c("fileid", "pageno"))
 meta <- read_delim(args$meta, delim="|",
-                   col_types=cols(.default=col_character())) %>%
-    select(fileid, filepath, db_path)
+                   col_types=cols(.default=col_character()))
+
+all_regions <- meta %>% distinct(region)
+
+regions_with_samps <- already %>% distinct(fileid) %>%
+    inner_join(meta, by = "fileid") %>%
+    distinct(region) %>%
+    # want to take another look at kenner due to some weird formats
+    filter(region != "kenner")
+
+regions_without_samps <- all_regions %>%
+    anti_join(regions_with_samps, by = "region") %>%
+    pluck("region") %>% unique
 
 samps <- pgs %>%
     filter(f_cat == "minutes") %>%
     inner_join(meta,by="fileid") %>%
+    filter(region %in% regions_without_samps,
+           filetype == "pdf") %>%
     mutate(filepath=here::here(str_replace(filepath, "^[^/]+/", ""))) %>%
     nest(data=c(-f_region)) %>%
     mutate(sampsize=pmin(args$N, map_int(data, nrow))) %>%

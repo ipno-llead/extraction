@@ -4,6 +4,8 @@
 # NOTES:
 #    - vivian: no hearings identified
 #    - orleans: no hearings identified
+#    - greenwood: nothing identified?
+#    - iberia: nothing identified?
 #    - harahan: less structured, will require more thought to parse
 #    - addis: fileid 3dcf07f mentions suspension of
 #             "a police officer" decided in executive session
@@ -150,7 +152,7 @@ mv <- mv_chunks %>%
 
 # slidell{{{
 sl_chunks <- doclines %>%
-    filter(f_region == "slidell", doctype == "meeting") %>%
+    filter(f_region == "slidell",doctype == "meeting") %>%
     chunk(pattern =  "(^[()0-9]+[().])|(^[a-z](\\.|\\)))")
 
 sl_hrg_flg <- sl_chunks %>%
@@ -224,7 +226,15 @@ knr <- knr_mtgs %>%
 # orleans {{{
 # doclines %>%
 #     filter(f_region == "orleans") %>%
-#     chunk(pattern = "^Item #")
+#     chunk(pattern = "^Item #") %>%
+#     filter(chunkno > 0) %>%
+#     filter(str_detect(chunk_title, regex("appeal", ignore_case=T))) %>%
+#     group_by(docid, chunkno, chunk_title) %>%
+#     filter(any(str_detect(text, regex("police", ignore_case=T)))) %>%
+#     summarise(text = paste(text, collapse = " "), .groups="drop") %>%
+#     transmute(text = paste0(chunk_title, str_sub(text,1, 500))) %>%
+#     distinct %>% pluck("text")
+# 
 # }}}
 
 # lake charles {{{
@@ -257,14 +267,14 @@ bossier_chunks <- doclines %>%
     chunk(pattern = "^([IVX]+\\.)|^([0-9]+\\.)")
 
 bossier_flag <- bossier_chunks %>%
-    group_by(fileid, chunkno) %>%
+    group_by(fileid, pageno, docid, chunkno, chunk_title) %>%
     summarise(text = paste(text, collapse = " ") %>% str_squish,
               .groups = "drop") %>%
-    filter(str_detect(text, regex("appeal hearing", ignore_case = T))) %>%
-    transmute(fileid, chunkno, hearing = T)
+    filter(str_detect(chunk_title, regex("appeal", ignore_case = T))) %>%
+    transmute(fileid, pageno, docid, chunkno, hearing = T)
 
 bsr <- bossier_chunks %>%
-    left_join(bossier_flag, by = c("fileid", "chunkno")) %>%
+    left_join(bossier_flag, by = c("fileid", "pageno", "docid", "chunkno")) %>%
     mutate(csb = str_detect(text, "^CIVIL SERVICE BOARD"),
            dt = str_detect(text, regex(dt_pattern, ignore_case = T))) %>%
     mutate(linetype = case_when(
@@ -277,11 +287,16 @@ bsr <- bossier_chunks %>%
 
 # note: seems like sulphur keeps disciplinary appeal hearings in separate docs
 # sulphur {{{
-slph <- doclines %>%
+sulphur_chunks <- doclines %>%
     filter(f_region == "sulphur") %>%
-    chunk(pattern = regex("^appeal hearing$", ignore_case = TRUE)) %>%
-    mutate(hearing = str_detect(chunk_title, regex("^appeal hearing$"))) %>%
-    group_by(docid) %>%
+    chunk(pattern = "^[A-Z0-9 ]+$")
+
+sulphur_flag <- sulphur_chunks %>%
+    filter(str_detect(chunk_title, regex("(appeal)|(disciplin)", ignore_case=T))) %>%
+    transmute(docid, docpg, lineno, hearing = T) %>% distinct
+
+slph <- sulphur_chunks %>%
+    left_join(sulphur_flag, by = c("docid", "docpg", "lineno")) %>%
     mutate(linetype = case_when(
         docpg == 1 & lineno < 10 ~ "meeting_header",
         hearing & text == chunk_title ~ "hearing_header",
@@ -291,11 +306,16 @@ slph <- doclines %>%
 # }}}
 
 # harahan ??? {{{
-# doclines %>%
+# hrhn_chunks <- doclines %>%
 #     filter(f_region == "harahan") %>%
+#     chunk(pattern = "^[0-9]+\\.")
+# 
+# hrhn_chunks %>%
+#     filter(!is.na(chunk_title)) %>% distinct(chunk_title)
+#     filter(str_detect(chunk_title, regex("appeal", ignore_case = T)))
 #     filter(str_detect(text, regex("giglio", ignore_case = T))) %>%
 #     pluck("text")
-#     sample_n(15) %>% select(text)
+# sample_n(15) %>% select(text)
 # }}}
 
 # youngsville {{{
@@ -304,7 +324,7 @@ yvl_chunks <- doclines %>%
     chunk(pattern = regex("^AGENDA ITEM", ignore_case = TRUE))
 
 yvl <- yvl_chunks %>%
-    mutate(hearing = str_detect(chunk_title, regex("appeal hearing"))) %>%
+    mutate(hearing = str_detect(chunk_title, regex("appeal"))) %>%
     mutate(linetype = case_when(
         chunkno == 0 ~ "meeting_header",
         hearing & chunk_title == text ~ "hearing_header",
@@ -317,8 +337,11 @@ yvl <- yvl_chunks %>%
 # carencro {{{
 crn <- doclines %>%
     filter(f_region == "carencro") %>%
-    chunk(pattern = "^[a-z0-9]\\.") %>%
-    mutate(hearing = str_detect(chunk_title, regex("appeal", ignore_case = T))) %>%
+    chunk(pattern = "^[A-Za-z0-9]\\.") %>%
+    group_by(docid, chunkno) %>%
+    mutate(hearing = str_detect(chunk_title, regex("appeal", ignore_case = T)) |
+           any(str_detect(text, "disciplin"))) %>%
+    ungroup %>%
     mutate(linetype = case_when(
         docpg == 1 & lineno <= 5 ~ "meeting_header",
         hearing & chunk_title == text ~ "hearing_header",
@@ -374,8 +397,47 @@ shreve <- doclines %>% filter(f_region == "shreveport") %>%
     distinct(fileid, pageno, docid, docpg, lineno, linetype)
 # }}}
 
+# greenwood {{{
+# doclines %>%
+#     filter(f_region == "greenwood") %>%
+#     filter(str_detect(text, regex("appeal", ignore_case=T))) %>%
+#     select(text)
+
+
+# }}}
+
+# monroe {{{
+monroe <- doclines %>% filter(f_region == "monroe") %>%
+    chunk("^[A-Z ]+\\:") %>%
+    group_by(docid, chunkno) %>%
+    mutate(hearing = str_detect(chunk_title, regex("appeal", ignore_case = T))) %>%
+    ungroup %>%
+    mutate(linetype = case_when(
+        docpg == 1 & lineno <= 5 ~ "meeting_header",
+        hearing & chunk_title == text ~ "hearing_header",
+        hearing ~ "hearing",
+        TRUE ~ "other")) %>%
+    distinct(fileid, pageno, docid, docpg, lineno, linetype)
+# }}}
+
+# westmonroe {{{
+westmonroe <- doclines %>% filter(f_region == "westmonroe") %>%
+    mutate(hrg_start = str_detect(text, regex("appeal of police", ignore_case = T))) %>%
+    arrange(docid, docpg, lineno) %>%
+    group_by(docid) %>%
+    mutate(hearing = cummax(hrg_start)) %>%
+    ungroup %>%
+    mutate(linetype = case_when(
+        hrg_start ~ "hearing_header",
+        hearing > 0 ~ "hearing",
+        docpg == 1 & lineno <= 15 ~ "meeting_header",
+        TRUE ~ "other")) %>%
+    distinct(fileid, pageno, docid, docpg, lineno, linetype)
+# }}}
+
 classes <- bind_rows(ww, ebr, la, mv, sl, knr_hearing,
-                     knr, lc, bsr, slph, yvl, crn, brs, shreve) %>%
+                     knr, lc, bsr, slph, yvl, crn, brs, shreve,
+                     monroe, westmonroe) %>%
     select(fileid, pageno, docid, docpg, lineno, linetype) %>%
     arrange(docid, docpg, lineno) %>%
     group_by(docid, docpg) %>%

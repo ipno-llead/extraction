@@ -138,9 +138,10 @@ pass6 <- matcher %>%
     anti_join(pass4, by = c("docid", "hrgno")) %>%
     anti_join(pass5, by = c("docid", "hrgno")) %>%
     inner_join(classes, by = c("docid", "hrgno")) %>%
-    filter(hrg_type %in% c("police", "unknown")) %>%
+    filter(!str_detect(hrg_accused, "fire")) %>%
+    #     filter(hrg_type %in% c("police", "unknown")) %>%
     group_by(docid, hrgno, uid) %>%
-    filter(n_distinct(tok_acc) > 1) %>%
+    filter(n_distinct(tok_acc) > 1 | namedist < .5) %>%
     group_by(docid, hrgno) %>%
     filter(namedist == min(namedist)) %>%
     filter(n_distinct(uid) == 1) %>%

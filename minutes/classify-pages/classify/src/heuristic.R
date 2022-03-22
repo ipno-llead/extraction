@@ -33,7 +33,7 @@ heur <- feats %>%
     group_by(fileid, pageno) %>%
     summarise(pagetype = case_when(
                 any(str_detect(name, "_agd_")) ~ "agenda",
-                #                 any(name == "re_contpage") ~ "continuation",
+                any(name == "re_contpage") ~ "continuation",
                 any(str_detect(name, "_hrg_")) ~ "hearing",
                 any(str_detect(name, "_mtg_")) ~ "meeting",
                 TRUE ~ "continuation"), .groups="drop")
@@ -41,10 +41,6 @@ heur <- feats %>%
 out <- feats %>%
     distinct(fileid, f_region, pageno) %>%
     left_join(heur, by = c("fileid", "pageno")) %>%
-    mutate(pagetype = case_when(
-            !is.na(pagetype) ~ pagetype,
-            f_region == "bossier" & pageno == 1 ~ "meeting",
-            f_region == "bossier" & pageno > 1 ~ "continuation")) %>%
     replace_na(list(pagetype="continuation"))
 
 log_info("performance on labeled data")
@@ -56,7 +52,8 @@ log_info("summary by jurisdiction")
 distinct(feats, fileid, pageno, f_region) %>%
     inner_join(out %>% select(-f_region), by = c("fileid", "pageno")) %>%
     count(f_region, pagetype) %>%
-    pivot_wider(names_from = pagetype, values_from = n, values_fill = 0L)
+    pivot_wider(names_from = pagetype, values_from = n, values_fill = 0L) %>%
+    print(n=Inf)
 
 write_parquet(out, args$output)
 
