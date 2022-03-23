@@ -11,10 +11,10 @@ import:
 features: import
 	cd $@ && make
 
-train: features
-	cd $@ && make
+#train: features
+#	cd $@ && make
 
-classify: train import
+classify: import
 	cd $@ && make
 
 export: classify import
