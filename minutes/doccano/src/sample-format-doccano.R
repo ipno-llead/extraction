@@ -49,25 +49,26 @@ already <- tibble(inputfile = list.files(args$sentdir,
     mutate(data = map(inputfile, readLines)) %>%
     unnest(data) %>%
     mutate(data = map(data, fromJSON)) %>%
-    mutate(fileid = map_chr(data, "fileid"),
-           doc_pg_from = map_chr(data, "doc_pg_from") %>% as.integer,
-           doc_pg_to = map_chr(data, "doc_pg_to") %>% as.integer,
-           text = map_chr(data, "text")) %>%
-    select(-data, -inputfile)
+    mutate(fileid = map_chr(data, "fileid")) %>%
+    distinct(fileid)
+#            doc_pg_from = map_chr(data, "doc_pg_from") %>% as.integer,
+#            doc_pg_to = map_chr(data, "doc_pg_to") %>% as.integer,
+#            text = map_chr(data, "text")) %>%
+#     select(-data, -inputfile)
 
 # to remove
-removes <- docs %>%
-    transmute(docid, fileid, doc_pg_from, doc_pg_to,
-              hrgno, hrg_pg_from, hrg_pg_to,
-              text = paste(hrg_head, hrg_text, sep = "\n") %>% str_squish) %>%
-    inner_join(already, by = c("fileid", "doc_pg_from", "doc_pg_to")) %>%
-    filter(str_squish(text.x) == str_squish(text.y)) %>%
-    distinct(docid, hrgno)
+# removes <- docs %>%
+#     transmute(docid, fileid, doc_pg_from, doc_pg_to,
+#               hrgno, hrg_pg_from, hrg_pg_to,
+#               text = paste(hrg_head, hrg_text, sep = "\n") %>% str_squish) %>%
+#     inner_join(already, by = c("fileid", "doc_pg_from", "doc_pg_to")) %>%
+#     filter(str_squish(text.x) == str_squish(text.y)) %>%
+#     distinct(docid, hrgno)
 # }}}
 
 samps <- docs %>%
-    filter(hrg_type %in% c("police")) %>%
-    anti_join(removes, by = c("docid", "hrgno"))
+    filter(hrg_type %in% c("police") | !is.na(hrg_acc_uid)) %>%
+    anti_join(already, by = "fileid")
 
 formatted <- samps %>%
     inner_join(dict, by = "fileid") %>%
@@ -75,13 +76,13 @@ formatted <- samps %>%
                         str_replace_all(hrg_text, "\n", " ") %>% str_squish,
                         sep = "\n")) %>%
     select(fileid, docid, hrgno, hrg_loc,
-           jurisdiction, db_path,
+           agency, db_path,
            doc_pg_from, doc_pg_to,
            mtg_year, mtg_month, mtg_day,
            text) %>%
     mutate(json = pmap(., list) %>% map_chr(toJSON, auto_unbox = TRUE))
 
-fl <- "output/doccano-json/sample-20211007.jsonl"
+fl <- "output/doccano-json/sample-20220322.jsonl"
 if (file.exists(fl)) file.remove(fl)
 walk(formatted$json, cat, "\n", file = fl, append = TRUE)
 
