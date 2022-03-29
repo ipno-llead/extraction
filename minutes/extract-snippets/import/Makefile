@@ -11,10 +11,15 @@ trndir := output/training
 all: $(trndir)/phase1.parquet \
 	$(trndir)/phase2.parquet \
 	output/hrg-sentences.parquet \
-	output/phase2-all-labels.parquet
+	output/phase2-all-labels.parquet \
+	output/hearings.parquet
 
 clean: 
 	-rm -r output/*
+
+output/hearings.parquet: ../../extract/export/output/hearings.parquet
+	-mkdir output
+	cd output && ln -s ../$< .
 
 $(jsdir)/%/done.touch: input/%.zip
 	-mkdir -p $(jsdir)/$*
