@@ -49,8 +49,10 @@ already <- tibble(inputfile = list.files(args$sentdir,
     mutate(data = map(inputfile, readLines)) %>%
     unnest(data) %>%
     mutate(data = map(data, fromJSON)) %>%
-    mutate(fileid = map_chr(data, "fileid")) %>%
-    distinct(fileid)
+    mutate(fileid = map_chr(data, "fileid"),
+           doc_pg_from = map_int(data, "doc_pg_from"),
+           doc_pg_to = map_int(data, "doc_pg_to")) %>%
+    distinct(fileid, doc_pg_from, doc_pg_to)
 #            doc_pg_from = map_chr(data, "doc_pg_from") %>% as.integer,
 #            doc_pg_to = map_chr(data, "doc_pg_to") %>% as.integer,
 #            text = map_chr(data, "text")) %>%
@@ -66,9 +68,17 @@ already <- tibble(inputfile = list.files(args$sentdir,
 #     distinct(docid, hrgno)
 # }}}
 
+set.seed(19481210)
 samps <- docs %>%
-    filter(hrg_type %in% c("police") | !is.na(hrg_acc_uid)) %>%
-    anti_join(already, by = "fileid")
+    filter(hrg_type %in% c("police") |
+           (!is.na(hrg_acc_uid) & hrg_type == "unknown")) %>%
+# filter(hrg_type == "unknown") %>%
+# sample_n(10) %>% select(hrg_accused, hrg_head, hrg_text)
+    anti_join(already, by = c("fileid", "doc_pg_from")) %>%
+    nest(data = -agency) %>%
+    mutate(sampsize = pmin(map_int(data, nrow), 25)) %>%
+    mutate(data = map2(data, sampsize, sample_n)) %>%
+    unnest(data) %>% select(-sampsize)
 
 formatted <- samps %>%
     inner_join(dict, by = "fileid") %>%
@@ -82,7 +92,7 @@ formatted <- samps %>%
            text) %>%
     mutate(json = pmap(., list) %>% map_chr(toJSON, auto_unbox = TRUE))
 
-fl <- "output/doccano-json/sample-20220322.jsonl"
+fl <- "output/doccano-json/sample-20220331.jsonl"
 if (file.exists(fl)) file.remove(fl)
 walk(formatted$json, cat, "\n", file = fl, append = TRUE)
 
