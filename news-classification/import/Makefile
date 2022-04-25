@@ -7,7 +7,7 @@
 news_included := input/news_articles_matchedsentence.csv.gz
 news_true := input/news_articles_matchedsentence_officers.csv.gz
 news_text := input/news_articles_newsarticle.csv.gz
-output := output/articles.parquet
+output := output/news.parquet
 
 .PHONY: all clean
 
