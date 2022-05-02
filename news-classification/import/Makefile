@@ -20,7 +20,7 @@ $(output): \
 		src/import.py \
 		$(news_included) \
 		$(news_true) \
-		$(news_text) \
+		$(news_text)
 	-mkdir output
 	python3 $< \
 		--included=$(news_included) \
