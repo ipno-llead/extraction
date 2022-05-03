@@ -3,10 +3,6 @@ remote:
     url: https://hub.wrgl.co/api/users/ipno/repos/data
     fetch:
       - +refs/heads/*:refs/remotes/data/*
-  documents:
-    url: https://hub.wrgl.co/api/users/ipno/repos/documents
-    fetch:
-      - +refs/heads/*:refs/remotes/data/*
 branch:
   event:
     remote: origin
