@@ -13,8 +13,8 @@ pdf_index := output/pdf-index.parquet
 txt_index := output/txt-index.parquet
 db_index := output/db-index.parquet
 
-wrgldir := output/documents
-output := $(wrgldir)/documents.csv
+wrgldir := ../../.wrgl
+output := ../../output/documents.csv
 
 .PHONY: all clean pdfs wrgl
 
@@ -25,10 +25,9 @@ clean:
 
 wrgl: $(output)
 	-wrgl init --wrgl-dir $(wrgldir)
-	-wrgl remote add origin https://hub.wrgl.co/api/users/ipno/repos/documents --wrgl-dir $(wrgldir)
-	wrgl pull main origin refs/heads/main:refs/heads/main --set-upstream --wrgl-dir $(wrgldir) --depth 1
-	wrgl commit main $(output) "updated documents" -p "docid,hrg_no,matched_uid,agency" --wrgl-dir $(wrgldir)
-	wrgl push origin refs/heads/main:main --set-upstream --wrgl-dir $(wrgldir)
+	wrgl pull documents --wrgl-dir $(wrgldir) --depth 1
+	cd $(dir $(wrgldir)) && wrgl commit documents "updated documents"
+	wrgl push origin refs/heads/documents: --wrgl-dir $(wrgldir)
 
 $(output): src/make-output.R $(db_index) $(hrgs)
 	-mkdir -p $(shell dirname $@)

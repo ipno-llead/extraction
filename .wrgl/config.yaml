@@ -1,0 +1,35 @@
+remote:
+  origin:
+    url: https://hub.wrgl.co/api/users/ipno/repos/data
+    fetch:
+      - +refs/heads/*:refs/remotes/data/*
+  documents:
+    url: https://hub.wrgl.co/api/users/ipno/repos/documents
+    fetch:
+      - +refs/heads/*:refs/remotes/data/*
+branch:
+  event:
+    remote: origin
+    merge: refs/heads/event
+    file: output/event.csv
+    primaryKey:
+      - event_uid
+  personnel:
+    remote: origin
+    merge: refs/heads/personnel
+    file: output/personnel.csv
+    primaryKey:
+      - uid
+  documents:
+    remote: origin
+    merge: refs/heads/documents
+    file: output/documents.csv
+    primaryKey:
+      - docid
+      - hrg_no
+      - matched_uid
+      - agency
+merge:
+  fastForward: only
+pack:
+  maxFileSize: 67108864 # 64Mb
