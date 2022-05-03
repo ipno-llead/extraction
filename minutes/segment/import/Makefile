@@ -20,7 +20,7 @@ labfiles := $(shell find $(labs_dir) -type f -iname '*.xls*')
 
 .PHONY: all clean
 
-all: $(mins_out)
+all: $(mins_out) $(train_out)
 
 clean: 
 	-rm -r output/*
