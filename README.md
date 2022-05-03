@@ -5,13 +5,10 @@ communicate with external tools:
 
 ## wrgl
 
-`share/bin/wrglctl` should be the [wrglctl
-binary](https://www.wrgl.co/doc/wrglctl-reference), and
-`share/creds/wrgl-creds.txt` should be a text file with:
+[Install](https://www.wrgl.co/doc/guides/installation) wrgl binary and authenticate with
 
-```
-WRGL_USERNAME=<your wrgl username>
-WRGL_APIKEY=<your wrgl api key>
+```bash
+wrgl credentials authenticate https://hub.wrgl.co/api
 ```
 
 ## dropbox

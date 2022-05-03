@@ -6,6 +6,8 @@
 input_mins := ../../segment/export/output/minutes.parquet
 input_meta := ../../import/export/output/metadata.csv
 
+wrgldir := ../../../.wrgl
+
 input_personnel := output/personnel.csv
 input_event := output/event.csv
 agencies := hand/agencies.csv
@@ -27,10 +29,9 @@ force: ;
 # running this recipe as one line in order to set api creds as env. variables
 # only locally within the recipe
 output/%.csv: force
-	-wrgl init --wrgl-dir output/$*
-	-wrgl remote add origin https://hub.wrgl.co/api/users/ipno/repos/$* --wrgl-dir output/$*
-	wrgl pull main origin refs/heads/main:refs/heads/main --set-upstream --wrgl-dir output/$* --depth 1
-	wrgl export --wrgl-dir output/$* main > $@
+	-wrgl init --wrgl-dir $(wrgldir)
+	wrgl pull $* --wrgl-dir $(wrgldir) --depth 1
+	wrgl export --wrgl-dir $(wrgldir) $* > $@
 
 $(output_mins): src/standardize-agency.R $(input_mins) $(agencies)
 	-mkdir output
