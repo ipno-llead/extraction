@@ -3,3 +3,7 @@ output/
 frozen/
 .DS_Store
 .vscode/
+
+!.wrgl
+.wrgl/*
+!.wrgl/config.yaml
