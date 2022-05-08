@@ -8,15 +8,16 @@
 import argparse
 import logging
 from numpy import nan as nan
+from math import ceil
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
 # support methods
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--included")    #'input/news_articles_matchedsentence.csv.gz'
-    parser.add_argument("--true")        #'input/news_articles_matchedsentence_officers.csv.gz'
-    parser.add_argument("--text")        #'input/news_articles_newsarticle.csv.gz'
+    parser.add_argument("--included")
+    parser.add_argument("--true")
+    parser.add_argument("--text")
     parser.add_argument("--output")
     return parser.parse_args()
 
@@ -32,14 +33,13 @@ def open_gz(f):
     return pd.read_csv(f, compression='gzip')
 
 
-def pretty_print(label, val, newline=False):
-    print('{:50}{}'.format(label, val))
+def pretty_str(label, val, newline=False):
     if newline:
-        print()
+        return '{:50}{}{}'.format(label, val, '\n')
+    return '{:50}{}'.format(label, val)
 
 
 def check_asserts(text_df, sen_df, true_df):
-    # asserts first
     assert text_df.shape == (29707, 12)
     assert sen_df.shape == (10470, 7)
     assert true_df.shape == (735, 3)
@@ -76,13 +76,23 @@ def check_asserts(text_df, sen_df, true_df):
         assert match in matched_sen
 
 
+def format_extracted_str(list_str):
+    if list_str is not None:
+        clean = list_str.replace('[', '').replace(']', '').replace('"', '').lower()
+        if ',' in clean:
+            return str({val for val in clean.split(',')})
+        return str({clean})
+    return None
+
+
 def prep_dfs(text_df, sen_df, true_df):
     less_text = text_df.loc[:, ['id', 'source_id', 'author', 'content']]
     temp = less_text
     less_text = temp.rename(columns={'id':'article_id'})
-    less_sen = sen_df.loc[:, ['id', 'article_id', 'extracted_keywords']]
+    less_sen = sen_df.loc[:, ['id', 'article_id', 'text']]
     temp = less_sen
     less_sen = temp.rename(columns={'id':'matchedsentence_id'})
+    less_sen['extracted_keywords'] = sen_df.extracted_keywords.apply(format_extracted_str)
     less_sen['kw_match'] = [1 for val in range(less_sen.shape[0])]
     less_true = true_df.loc[:, ['officer_id', 'matchedsentence_id']]
     less_true['relevant'] = [1 for val in range(less_true.shape[0])]
@@ -105,201 +115,109 @@ def merge_dfs(less_text, less_sen, less_true):
     return out
 
 
-def invert_bool_list(aList):
-    mask = [1 if val == 0 else 0 for val in aList]
-    return pd.array(mask, dtype="boolean")
-
-
-# Per TS, starting train/test size should be 500/100
-# ASSUMPTION: A 50/50 POS/NEG balance for model is reasonable starting point
 # This method builds the POSITIVE cases: keyword matched AND article relevant (per Rajiv)
-def prep_pos_train_test(merged, train_n=250, test_n=50):
-    id_mask = (merged.officer_id.notnull())
-    possible = merged.loc[id_mask].officer_id.unique().tolist()
-    train_list, test_list = train_test_split(possible, test_size=test_n, train_size=train_n, shuffle=True)
+def prep_pos_train_test(df, train_perc=0.80, test_perc=0.20):
+    id_mask = (df.officer_id.notnull())
+    possible = df.loc[id_mask].article_id.unique().tolist()
+    train_list, test_list = train_test_split(possible, test_size=test_perc, train_size=train_perc, shuffle=True)
     assert set(train_list).isdisjoint(set(test_list))
     return train_list, test_list
 
 
 # This method builds the NEGATIVE cases: keyword matched but not relevant
-def prep_neg_train_test(rem_df, train_n=250, test_n=50):
-    id_mask = (rem_df.kw_match == 1) & (rem_df.officer_id.isnull())
-    possible = rem_df.loc[id_mask].matchedsentence_id.unique().tolist()
-    train_list, test_list = train_test_split(possible, test_size=test_n, train_size=train_n, shuffle=True)
+def prep_neg_train_test(df, pos_rate, curr_train_n, curr_test_n):
+    assert 0 < pos_rate <= 0.5
+    target_train = ceil(curr_train_n/pos_rate)
+    target_test = ceil(curr_test_n/pos_rate)
+    needed_train = target_train - curr_train_n
+    needed_test = target_test - curr_test_n
+    id_mask = (df.kw_match == 1) & (df.officer_id.isnull())
+    possible = df.loc[id_mask].article_id.unique().tolist()
+    assert needed_train + needed_test <= len(possible)
+    train_list, test_list = train_test_split(possible, test_size=needed_test, train_size=needed_train, shuffle=True)
     assert set(train_list).isdisjoint(set(test_list))
     return train_list, test_list
 
 
-def get_train_test_dfs(merged):
-    pos_train_idx, pos_test_idx = prep_pos_train_test(merged)
-    pos_train_df = merged.loc[merged.officer_id.isin(pos_train_idx)]
-    pos_test_df = merged.loc[merged.officer_id.isin(pos_test_idx)]
-    # combine train and test indices
-    # use combined indices as mask, then invert the mask so T->F, F->T
-    # use inverted mask to get remainder data that is not in either train or test sets
-    pos_combined = pos_train_idx + pos_test_idx
-    assert invert_bool_list([1,1,1,0,0,0]) == [0,0,0,1,1,1]
-    mask_to_inv = (merged.officer_id.isin(pos_combined))
-    pos_inv_mask = invert_bool_list(mask_to_inv)
-    initial_rem_df = merged.loc[pos_inv_mask]
-    assert len(pos_train_df.officer_id.unique()) == 250
-    assert len(pos_test_df.officer_id.unique()) == 50
-    # use remainder data to pad train and test sets with negative cases
-    neg_train_idx, neg_test_idx = prep_neg_train_test(initial_rem_df)
-    neg_train_df = initial_rem_df.loc[initial_rem_df.matchedsentence_id.isin(neg_train_idx)]
-    neg_test_df = initial_rem_df.loc[initial_rem_df.matchedsentence_id.isin(neg_test_idx)]
-    neg_train_idx, neg_test_idx = prep_neg_train_test(initial_rem_df)
-    neg_combined = neg_train_idx + neg_test_idx
-    mask_to_inv = (merged.matchedsentence_id.isin(neg_combined) | merged.officer_id.isin(pos_combined))
-    inv_mask = invert_bool_list(mask_to_inv)
-    final_rem_df = merged.loc[inv_mask]
-    train_df = pd.concat([pos_train_df, neg_train_df])
-    test_df = pd.concat([pos_test_df, neg_test_df])
-    return train_df, test_df, final_rem_df
-
-
 def remake_merged(train_df, test_df, rem_df):
-    train_test_df = pd.concat([train_df, test_df])
-    train_test_df['train_test'] = [1 for val in range(train_test_df.shape[0])]
-    temp = rem_df.copy()
-    temp['train_test'] = [0 for val in range(temp.shape[0])]
-    return pd.concat([train_test_df, temp])
+    l_df = train_df.copy()
+    l_df['train'] = [1 for val in range(train_df.shape[0])]
+    r_df = test_df.copy()
+    r_df['test'] = [1 for val in range(test_df.shape[0])]    
+    train_test_df = pd.concat([l_df, r_df])
+    out = pd.concat([train_test_df, rem_df])
+    out.train.fillna(value=0, axis=0, inplace=True)
+    out.test.fillna(value=0, axis=0, inplace=True)
+    temp = out
+    out['train'] = temp.train.astype(int)
+    out['test'] = temp.test.astype(int)
+    return out
 
 
-def make_source_reports(train_df, test_df, rem_df):
-    train_vc = train_df.source_id.value_counts().to_dict()
-    test_vc = test_df.source_id.value_counts().to_dict()
-    rem_vc = rem_df.source_id.value_counts().to_dict()
-    sources = set(list(train_vc.keys()) + list(test_vc.keys()) + list(rem_vc.keys()))
-    out_data = {source:{} for source in sources}
-    for source in sources:
-        if source in train_vc:
-            out_data[source]['train_df'] = train_vc[source]
-        else:
-            out_data[source]['train_df'] = nan
-        if source in test_vc:
-            out_data[source]['test_df'] = test_vc[source]
-        else:
-            out_data[source]['test_df'] = nan
-        if source in rem_vc:
-            out_data[source]['rem_df'] = rem_vc[source]
-        else:
-            out_data[source]['rem_df'] = nan
-    return pd.DataFrame.from_dict(out_data).T.reset_index().rename(columns={'index':'source_id'})
+def make_train_test_cols(df, pos_rate):
+    copy = df.copy()
+    # get pos/neg and train/test indice sets
+    pos_train_idx, pos_test_idx = prep_pos_train_test(copy)
+    neg_train_idx, neg_test_idx = prep_neg_train_test(copy, pos_rate, len(pos_train_idx), len(pos_test_idx))
+    # train
+    train_idx = pos_train_idx + neg_train_idx
+    copy['train'] = [1 if val in train_idx else 0 for val in copy.article_id.values]
+    # test
+    test_idx = pos_test_idx + neg_test_idx
+    copy['test'] = [1 if val in test_idx else 0 for val in copy.article_id.values]
+    return copy[['article_id', 'matchedsentence_id', 'source_id', 'author', 'text', \
+                'content', 'officer_id', 'extracted_keywords', 'kw_match', 'relevant', 'train', 'test']]
 
 
-def make_author_reports(train_df, test_df, rem_df):
-    train_vc = train_df.author.value_counts().to_dict()
-    test_vc = test_df.author.value_counts().to_dict()
-    rem_vc = rem_df.author.value_counts().to_dict()
-    authors = set(list(train_vc.keys()) + list(test_vc.keys()) + list(rem_vc.keys()))
-    out_data = {author:{} for author in authors}
-    for author in authors:
-        if author in train_vc:
-            out_data[author]['train_df'] = train_vc[author]
-        else:
-            out_data[author]['train_df'] = nan
-        if author in test_vc:
-            out_data[author]['test_df'] = test_vc[author]
-        else:
-            out_data[author]['test_df'] = nan
-        if author in rem_vc:
-            out_data[author]['rem_df'] = rem_vc[author]
-        else:
-            out_data[author]['rem_df'] = nan
-    return pd.DataFrame.from_dict(out_data).T.reset_index().rename(columns={'index':'author'})
+# this method is called when relevant_articles and irrelevant_articles are not disjoint sets
+# resolves conflict by upgrading all occurances of an article_id in relevant_articles to relevant
+# ie. a sentence from an article is matched to an officer and appears in matchedsentence_officers data
+#     a different sentence from same article is not matched and deemed irrelevant, appears in matchedsentence data
+#     conflict occurs when datasets merged
+def correct_relevant(df):
+    copy = df.copy()
+    relevant = copy.loc[copy.relevant == 1].article_id.unique().tolist()
+    copy.loc[copy.article_id.isin(relevant), 'relevant'] = 1
+    return copy
 
 
-def make_kw_reports(train_df, test_df, rem_df):
-    train_vc = train_df.extracted_keywords.value_counts().to_dict()
-    test_vc = test_df.extracted_keywords.value_counts().to_dict()
-    rem_vc = rem_df.extracted_keywords.value_counts().to_dict()
-    kws = set(list(train_vc.keys()) + list(test_vc.keys()) + list(rem_vc.keys()))
+def make_train_test_df(df):
+    full = df.loc[((df.train == 1) | (df.test == 1)), ['article_id', 'content', 'relevant', 'test']]
+    full.drop_duplicates(subset='article_id', inplace=True)
+    return full
+
+
+def make_report(df, col):
+    kw_match_vc = df.loc[df.kw_match == 1][col].value_counts().to_dict()
+    relevant_vc = df.loc[df.relevant == 1][col].value_counts().to_dict()
+    irrelevant_match_vc = df.loc[(df.kw_match == 1) & (df.relevant != 1)][col].value_counts().to_dict()
+    kws = set(list(kw_match_vc.keys()) + list(relevant_vc.keys()) + list(irrelevant_match_vc.keys()))
     out_data = {kw:{} for kw in kws}
     for kw in kws:
-        if kw in train_vc:
-            out_data[kw]['train_df'] = train_vc[kw]
+        if kw in kw_match_vc:
+            out_data[kw]['kw_match'] = kw_match_vc[kw]
         else:
-            out_data[kw]['train_df'] = nan
-        if kw in test_vc:
-            out_data[kw]['test_df'] = test_vc[kw]
+            out_data[kw]['kw_match'] = 0
+        if kw in relevant_vc:
+            out_data[kw]['relevant_count'] = relevant_vc[kw]
         else:
-            out_data[kw]['test_df'] = nan
-        if kw in rem_vc:
-            out_data[kw]['rem_df'] = rem_vc[kw]
-        else:
-            out_data[kw]['rem_df'] = nan
-    return pd.DataFrame.from_dict(out_data).T.reset_index().rename(columns={'index':'extracted_keywords'})
+            out_data[kw]['relevant_count'] = 0
+    out = pd.DataFrame.from_dict(out_data).T.reset_index().rename(columns={'index':col})
+    out['relevant_perc'] = round((out.relevant_count) / (out.relevant_count + out.kw_match), 3)
+    return out
 
 
-def make_final_logs(text_df, sen_df, true_df, train_df, test_df, rem_df, news_df, log=True):
-    if not log:
-        #reporting/logging second
-        print('                overview of I/O')
-        print('=======================================================')
-        print('I/O shape')
-        print('---------')
-        pretty_print('raw article data:', str(text_df.shape))
-        pretty_print('matched kw data:', str(sen_df.shape))
-        pretty_print('relevant sentence/officer data:', str(true_df.shape))
-        pretty_print('train data:', str(train_df.shape))
-        pretty_print('test data:', str(test_df.shape))
-        pretty_print('remainder data:', str(rem_df.shape))
-        pretty_print('full data:', str(news_df.shape))
-        print()
-        print('I/O columns')
-        print('-----------')
-        print('raw data cols:\n', str(text_df.columns.tolist()))
-        print('kw data cols:\n', str(sen_df.columns.tolist()))
-        print('relevant data cols:\n', str(true_df.columns.tolist()))
-        print('train cols:\n', str(train_df.columns.tolist()))
-        print('test cols:\n', str(test_df.columns.tolist()))
-        print('remainder cols:\n', str(rem_df.columns.tolist()))
-        print('full data cols:\n', str(news_df.columns.tolist()))
-        print()
-        print('I/O id summary')
-        print('--------------')
-        pretty_print('all kw_match articles in raw data:', True)      # asserted by check_asserts()
-        pretty_print('all matchedsentences in kw_match data:', True)
-        pretty_print('unique articles:', len(text_df.id.unique()))
-        pretty_print('unique articles w/ kw match:', len(sen_df.article_id.unique()))
-        pretty_print('unique matched sentences:', len(sen_df.id.unique()))
-        pretty_print('unique matched sentences relevant:', len(true_df.matchedsentence_id.unique()))
-        pretty_print('unique matched officers relevant:', len(true_df.id.unique()))
-        print()
-    else:
-        logging.info('                overview of I/O')
-        logging.info('=======================================================')
-        logging.info('I/O shape')
-        logging.info('---------')
-        logging.info('raw article data:', str(text_df.shape))
-        logging.info('matched kw data:', str(sen_df.shape))
-        logging.info('relevant sentence/officer data:', str(true_df.shape))
-        logging.info('train data:', str(train_df.shape))
-        logging.info('test data:', str(test_df.shape))
-        logging.info('remainder data:', str(news_df.shape))
-        logging.info('full data:', str(news_df.shape))
-        logging.info()
-        logging.info('I/O columns')
-        logging.info('-----------')
-        logging.info('raw data cols:', str(text_df.columns.tolist()))
-        logging.info('kw data cols:', str(sen_df.columns.tolist()))
-        logging.info('relevant data cols:', str(true_df.columns.tolist()))
-        logging.info('train cols:', str(train_df.columns.tolist()))
-        logging.info('test cols:', str(test_df.columns.tolist()))
-        logging.info('remainder cols:', str(rem_df.columns.tolist()))
-        logging.info('full data cols:', str(news_df.columns.tolist()))
-        logging.info()
-        logging.info('I/O id summary')
-        logging.info('--------------')
-        logging.info('all kw_match articles in raw data:', True)      # asserted by check_asserts()
-        logging.info('all matchedsentences in kw_match data:', True)
-        logging.info('unique articles:', len(text_df.id.unique()))
-        logging.info('unique articles w/ kw match:', len(sen_df.article_id.unique()))
-        logging.info('unique matched sentences:', len(sen_df.id.unique()))
-        logging.info('unique matched sentences relevant:', len(true_df.matchedsentence_id.unique()))
-        logging.info('unique matched officers relevant:', len(true_df.id.unique()))
-        logging.info()
+def make_final_logs(text_df, sen_df, true_df, train_test_df, merged):
+    logging.info('I/O id summary')
+    logging.info('=======================================================')
+    logging.info(pretty_str('all kw_match articles in raw data:', True))      # asserted by check_asserts()
+    logging.info(pretty_str('all matchedsentences in kw_match data:', True))
+    logging.info(pretty_str('unique articles:', len(text_df.id.unique())))
+    logging.info(pretty_str('unique articles w/ kw match:', len(sen_df.article_id.unique())))
+    logging.info(pretty_str('unique matched sentences:', len(sen_df.id.unique())))
+    logging.info(pretty_str('unique matched sentences relevant:', len(true_df.matchedsentence_id.unique())))
+    logging.info(pretty_str('unique matched officers relevant:', len(true_df.id.unique())))
+    logging.info(pretty_str('unique articles in train_test:', len(train_test_df.article_id.unique()), newline=True))
     return 1
 
 
@@ -327,26 +245,72 @@ if __name__ == '__main__':
     sen_df = open_gz(news_included_f)
     true_df = open_gz(news_true_f)
     check_asserts(text_df, sen_df, true_df)
-
+    
     less_text, less_sen, less_true = prep_dfs(text_df, sen_df, true_df)
     merged = merge_dfs(less_text, less_sen, less_true)
-    train_df, test_df, rem_df = get_train_test_dfs(merged)
-    src_report = make_source_reports(train_df, test_df, rem_df)
-    author_report = make_author_reports(train_df, test_df, rem_df)
-    kw_report = make_kw_reports(train_df, test_df, rem_df)
-    news_df = remake_merged(train_df, test_df, rem_df)
-    less_train = train_df.loc[:, ['article_id', 'content', 'relevant']]
-    less_test = test_df.loc[:, ['article_id', 'content', 'relevant']]
-                
-    # save outputs
-    news_df.to_parquet(output_f)
-    less_train.to_parquet('output/train.parquet')
-    less_test.to_parquet('output/test.parquet')
-    src_report.to_parquet('output/source_report.parquet')
-    author_report.to_parquet('output/author_report.parquet')
-    kw_report.to_parquet('output/keyword_report.parquet')
+    # report lost columns
+    print()
+    logging.info('columns ignored by import')
+    logging.info('=======================================================')
+    all_cols = set(text_df.columns.tolist() + sen_df.columns.tolist() + true_df.columns.tolist())
+    kept = set(merged.columns)
+    not_kept = all_cols.difference(kept)
+    not_kept.remove('id')
+    logging.info(str(not_kept)+'\n')
     
-    assert make_final_logs(text_df, sen_df, true_df, train_df, test_df, rem_df, news_df, log=False)
+    # make sure every article_id has a corresponding 'relevant' value
+    all_ids = set(merged.article_id.unique())
+    relevant_articles = set(merged.loc[(merged.relevant == 1)].article_id.unique())
+    irrelevant_articles = set(merged.loc[(merged.relevant == 0)].article_id.unique())
+    rel_vals = relevant_articles.union(irrelevant_articles)
+    assert all_ids.difference(rel_vals) == set()
+    overlap = relevant_articles.intersection(irrelevant_articles)
+    logging.info('relevant && irrelevant articles check')
+    logging.info('=======================================================')
+    logging.info(pretty_str('unique relevant articles:', len(relevant_articles)))
+    logging.info(pretty_str('unique irrelevant articles:', len(irrelevant_articles)))
+    # check for conflicting 'relevant' values, correct if present
+    logging.info(pretty_str('relevant and irrelevant disjoint:', overlap == set()))
+    if overlap != set():
+        logging.info(pretty_str('size of overlap:', len(overlap)))
+        temp = merged
+        merged = correct_relevant(temp)
+        logging.info(pretty_str('amended relevant column:', True, newline=True))
+    
+    # Per TS, starting train/test size should be roughly 500/100
+    # ASSUMES initial balance of 50/50 positive/negative
+    # proceed with generating training data
+    merged = make_train_test_cols(merged, pos_rate=0.5)
+    train_test_df = make_train_test_df(merged)
+    logging.info('train_test summary')
+    logging.info('=======================================================')
+    train = train_test_df.loc[train_test_df.test == 0]
+    test = train_test_df.loc[train_test_df.test == 1]
+    train_n = train.article_id.count()
+    test_n = test.article_id.count()
+    assert train_n + test_n == train_test_df.shape[0]
+    train_pos = train.loc[train.relevant == 1].article_id.count()
+    test_pos = test.loc[test.relevant == 1].article_id.count()
+    train_neg = train_n - train_pos
+    test_neg = test_n - test_pos
+    logging.info(f'{train_n} datapoints available for training with balance: {train_pos}/{train_neg} (pos/neg)')
+    logging.info(f'{test_n} datapoints available for testing with balance: {test_pos}/{test_neg} (pos/neg)\n')
+    train_test_df.info()
+    print()
+
+    assert make_final_logs(text_df, sen_df, true_df, train_test_df, merged)
+    
+    # generate keyword report (source_id, author also helpful reports)
+    kw_report = make_report(merged, 'extracted_keywords')
+    logging.info('keyword report')
+    logging.info('=======================================================')
+    sorted_kw_report = kw_report[['extracted_keywords', 'relevant_perc']].sort_values(by='relevant_perc', ascending=False)
+    for tup in sorted_kw_report.itertuples():
+        logging.info(pretty_str(tup.extracted_keywords+':', tup.relevant_perc ))
+    
+    # save output(s)
+    train_test_df.to_parquet('output/train-test.parquet')
+    
     logging.info("done.")
     
 # done.
