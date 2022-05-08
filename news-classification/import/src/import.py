@@ -115,6 +115,18 @@ def merge_dfs(less_text, less_sen, less_true):
     return out
 
 
+# this method is called when relevant_articles and irrelevant_articles are not disjoint sets
+# resolves conflict by upgrading all occurances of an article_id in relevant_articles to relevant
+# ie. a sentence from an article is matched to an officer and appears in matchedsentence_officers data
+#     a different sentence from same article is not matched and deemed irrelevant, appears in matchedsentence data
+#     conflict occurs when datasets merged
+def correct_relevant(df):
+    copy = df.copy()
+    relevant = copy.loc[copy.relevant == 1].article_id.unique().tolist()
+    copy.loc[copy.article_id.isin(relevant), 'relevant'] = 1
+    return copy
+
+
 # This method builds the POSITIVE cases: keyword matched AND article relevant (per Rajiv)
 def prep_pos_train_test(df, train_perc=0.80, test_perc=0.20):
     id_mask = (df.officer_id.notnull())
@@ -139,21 +151,6 @@ def prep_neg_train_test(df, pos_rate, curr_train_n, curr_test_n):
     return train_list, test_list
 
 
-def remake_merged(train_df, test_df, rem_df):
-    l_df = train_df.copy()
-    l_df['train'] = [1 for val in range(train_df.shape[0])]
-    r_df = test_df.copy()
-    r_df['test'] = [1 for val in range(test_df.shape[0])]    
-    train_test_df = pd.concat([l_df, r_df])
-    out = pd.concat([train_test_df, rem_df])
-    out.train.fillna(value=0, axis=0, inplace=True)
-    out.test.fillna(value=0, axis=0, inplace=True)
-    temp = out
-    out['train'] = temp.train.astype(int)
-    out['test'] = temp.test.astype(int)
-    return out
-
-
 def make_train_test_cols(df, pos_rate):
     copy = df.copy()
     # get pos/neg and train/test indice sets
@@ -167,18 +164,6 @@ def make_train_test_cols(df, pos_rate):
     copy['test'] = [1 if val in test_idx else 0 for val in copy.article_id.values]
     return copy[['article_id', 'matchedsentence_id', 'source_id', 'author', 'text', \
                 'content', 'officer_id', 'extracted_keywords', 'kw_match', 'relevant', 'train', 'test']]
-
-
-# this method is called when relevant_articles and irrelevant_articles are not disjoint sets
-# resolves conflict by upgrading all occurances of an article_id in relevant_articles to relevant
-# ie. a sentence from an article is matched to an officer and appears in matchedsentence_officers data
-#     a different sentence from same article is not matched and deemed irrelevant, appears in matchedsentence data
-#     conflict occurs when datasets merged
-def correct_relevant(df):
-    copy = df.copy()
-    relevant = copy.loc[copy.relevant == 1].article_id.unique().tolist()
-    copy.loc[copy.article_id.isin(relevant), 'relevant'] = 1
-    return copy
 
 
 def make_train_test_df(df):
