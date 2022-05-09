@@ -172,6 +172,8 @@ def make_train_test_df(df):
     return full
 
 
+# Since out.kw_match = out.relevant_count + out.irrelevant_count, and relevant can't be true without kw_match,
+# (out.relevant_count) / (out.kw_match) should be the proportion of relevant samples given kw_match for col value
 def make_report(df, col):
     kw_match_vc = df.loc[df.kw_match == 1][col].value_counts().to_dict()
     relevant_vc = df.loc[df.relevant == 1][col].value_counts().to_dict()
@@ -188,7 +190,7 @@ def make_report(df, col):
         else:
             out_data[kw]['relevant_count'] = 0
     out = pd.DataFrame.from_dict(out_data).T.reset_index().rename(columns={'index':col})
-    out['relevant_perc'] = round((out.relevant_count) / (out.relevant_count + out.kw_match), 3)
+    out['relevant_perc'] = round((out.relevant_count) / (out.kw_match), 3)
     return out
 
 
