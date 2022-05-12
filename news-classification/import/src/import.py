@@ -91,7 +91,7 @@ def format_extracted_str(list_str):
 
 
 def prep_dfs(text_df, sen_df, true_df):
-    less_text = text_df.loc[:, ['id', 'source_id', 'author', 'content']]
+    less_text = text_df.loc[:, ['id', 'source_id', 'author', 'title', 'content']]
     temp = less_text
     less_text = temp.rename(columns={'id':'article_id'})
     less_sen = sen_df.loc[:, ['id', 'article_id', 'text']]
@@ -167,7 +167,7 @@ def make_train_test_cols(df, pos_rate):
     # test
     test_idx = pos_test_idx + neg_test_idx
     copy['test'] = [1 if val in test_idx else 0 for val in copy.article_id.values]
-    return copy[['article_id', 'matchedsentence_id', 'source_id', 'author', 'text', \
+    return copy[['article_id', 'matchedsentence_id', 'source_id', 'author', 'title', 'text', \
                 'content', 'officer_id', 'extracted_keywords', 'kw_match', 'relevant', 'train', 'test']]
 
 
@@ -295,6 +295,11 @@ if __name__ == '__main__':
     test.info()
     print()
 
+    # writing a subset of merged to use as pre-training data
+    temp = merged.loc[:, ['article_id', 'title', 'content']].drop_duplicates(subset='article_id')
+    assert len(temp.article_id.unique()) == temp.shape[0]
+    news = temp.sample(temp.shape[0]).reset_index(drop=True)
+    
     assert make_final_logs(text_df, sen_df, true_df, train_test_df, merged)
     
     # generate keyword report (source_id, author also helpful reports)
@@ -309,6 +314,7 @@ if __name__ == '__main__':
     # save output(s)
     train.to_parquet('output/train.parquet')
     test.to_parquet('output/test.parquet')
+    news.to_parquet(output_f)
     logging.info("done.")
     
 # done.
