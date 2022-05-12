@@ -33,10 +33,15 @@ def open_gz(f):
     return pd.read_csv(f, compression='gzip')
 
 
-def pretty_str(label, val, newline=False):
+def pretty_str(label, a, b=False, newline=False):
     if newline:
-        return '{:50}{}{}'.format(label, val, '\n')
-    return '{:50}{}'.format(label, val)
+        if not b:
+            return '{:50}{}{}'.format(label, a, '\n')
+        else:
+            return '{:50}{:10}{:10}{}'.format(label, a, b, '\n')
+    if b:
+        return '{:50}{:10}{:10}'.format(label, a, b)
+    return '{:50}{}'.format(label, a)
 
 
 def check_asserts(text_df, sen_df, true_df):
@@ -196,7 +201,7 @@ def make_report(df, col):
 
 def make_final_logs(text_df, sen_df, true_df, train_test_df, merged):
     logging.info('I/O id summary')
-    logging.info('=======================================================')
+    logging.info('=======================================================================')
     logging.info(pretty_str('all kw_match articles in raw data:', True))      # asserted by check_asserts()
     logging.info(pretty_str('all matchedsentences in kw_match data:', True))
     logging.info(pretty_str('unique articles:', len(text_df.id.unique())))
@@ -238,7 +243,7 @@ if __name__ == '__main__':
     # report lost columns
     print()
     logging.info('columns ignored by import')
-    logging.info('=======================================================')
+    logging.info('=======================================================================')
     all_cols = set(text_df.columns.tolist() + sen_df.columns.tolist() + true_df.columns.tolist())
     kept = set(merged.columns)
     not_kept = all_cols.difference(kept)
@@ -253,7 +258,7 @@ if __name__ == '__main__':
     assert all_ids.difference(rel_vals) == set()
     overlap = relevant_articles.intersection(irrelevant_articles)
     logging.info('relevant && irrelevant articles check')
-    logging.info('=======================================================')
+    logging.info('=======================================================================')
     logging.info(pretty_str('unique relevant articles:', len(relevant_articles)))
     logging.info(pretty_str('unique irrelevant articles:', len(irrelevant_articles)))
     # check for conflicting 'relevant' values, correct if present
@@ -269,10 +274,10 @@ if __name__ == '__main__':
     # proceed with generating training data
     merged = make_train_test_cols(merged, pos_rate=0.5)
     train_test_df = make_train_test_df(merged)
-    logging.info('train_test summary')
-    logging.info('=======================================================')
-    train = train_test_df.loc[train_test_df.test == 0]
-    test = train_test_df.loc[train_test_df.test == 1]
+    logging.info('train, test summary')
+    logging.info('=======================================================================')
+    train = train_test_df.loc[train_test_df.test == 0, ['article_id', 'content', 'relevant']]
+    test = train_test_df.loc[train_test_df.test == 1, ['article_id', 'content', 'relevant']]
     train_n = train.article_id.count()
     test_n = test.article_id.count()
     assert train_n + test_n == train_test_df.shape[0]
@@ -282,7 +287,12 @@ if __name__ == '__main__':
     test_neg = test_n - test_pos
     logging.info(f'{train_n} datapoints available for training with balance: {train_pos}/{train_neg} (pos/neg)')
     logging.info(f'{test_n} datapoints available for testing with balance: {test_pos}/{test_neg} (pos/neg)\n')
-    train_test_df.info()
+    print('train info')
+    print('=======================================================================')
+    train.info()
+    print('\ntest info')
+    print('=======================================================================')
+    test.info()
     print()
 
     assert make_final_logs(text_df, sen_df, true_df, train_test_df, merged)
@@ -290,14 +300,15 @@ if __name__ == '__main__':
     # generate keyword report (source_id, author also helpful reports)
     kw_report = make_report(merged, 'extracted_keywords')
     logging.info('keyword report')
-    logging.info('=======================================================')
-    sorted_kw_report = kw_report[['extracted_keywords', 'relevant_perc']].sort_values(by='relevant_perc', ascending=False)
+    logging.info('=======================================================================')
+    logging.info('{:50}{:15}{:10}'.format('extracted_keywords', 'relevant_perc', 'kw_match'))
+    sorted_kw_report = kw_report[['extracted_keywords', 'relevant_perc', 'kw_match']].sort_values(by='relevant_perc', ascending=False)
     for tup in sorted_kw_report.itertuples():
-        logging.info(pretty_str(tup.extracted_keywords+':', tup.relevant_perc ))
+        logging.info(pretty_str(tup.extracted_keywords+':', tup.relevant_perc, b=tup.kw_match))
     
     # save output(s)
-    train_df.to_parquet('output/train.parquet')
-    test_df.to_parquet('output/test.parquet')
+    train.to_parquet('output/train.parquet')
+    test.to_parquet('output/test.parquet')
     logging.info("done.")
     
 # done.

@@ -30,11 +30,10 @@ train a text classifier
 ## `import`
 
 ### Ouput
-- writes "train-test.parquet", with columns:
+- writes "train.parquet", "test.parquet", with columns:
   - `article_id`: unique identifier for the article instance.
   - `content`: full text of the article.
   - `relevant`: boolean indicator for article presence in the manually approved set.
-  - `test`: boolean indicator for article inclusion in test set (belongs in train if false).
 - writes "import.log", which captures some summary characteristics of the data as well as a few reports for transparency.
 - creates but does not write "merged.parquet", the combined dataframe representing all 3 snapshots from basedash.
 - with `make_report(df, col)`, can generate a summary of `col`'s prevalence in keyword matched and relevant data. A sample report using `extracted_keywords` is generated with train-test data.
@@ -43,7 +42,7 @@ train a text classifier
 Added:
 - `kw_match`: boolean indicator for keyword presence in article content.
 - `relevant`: boolean indicator for article presence in the manually approved set.
-- `train`, `test`: boolean indicator for article inclusion in train or test set. The train-test dataframe is a slice of the merged dataframe based on these columns.
+- `train`, `test`: boolean indicator for article inclusion in train or test set. The train, test dataframes are a slice of the merged dataframe based on these columns.
 
 Modified:
 - `extracted_keywords`: Values in this col are case-sensitive lists represented as strings, and are modified to be case-insensitive sets of unique vals represented as strings. These results aren't written but can be seen in `make_report(merged, 'extracted_keywords')` which is logged by default.
@@ -62,6 +61,7 @@ Modified:
 - `pos_rate` could also be written in as an arg so that we could dispatch multiple train-test datasets at different positivity rates from makefile, which could be a good way to challenge/aid model performance.
 - The article_id and matchedsentence_id generation are similar enough that there is overlap between these unique lists
 - A couple of articles are actually TV show reviews, like one for The Flash season 8 (which also ends up being duplicated content as two different sources posted the author's review). We may want to consider a blacklist of words or some other solution to filter out crime-related TV articles!
+- Upon looking at the article and content `merged.loc[merged.extracted_keywords == "{'terminated', 'officer', 'police'}"]`, it appears some articles that are irrelevant with keywords matched actually matched because the title of a suggested article was captured as content and that title contained keywords, whereas none of the sentences in the true article content match.
 
 _outgoing train_test asserts I'm adding:_
 1. No article_id or content is missing from either train or test sets
