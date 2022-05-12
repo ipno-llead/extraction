@@ -29,8 +29,8 @@ def set_lm_lr(bs, lr):
 
 
 def save_lm():
-    learn_lm.save("learnlm_ftuned")
-    learn_lm.save_encoder("learnlm_ftuned_enc")
+    learn_lm.save("../output/learnlm_ftuned")
+    learn_lm.save_encoder("../output/learnlm_ftuned_enc")
     return learn_lm
 
 
