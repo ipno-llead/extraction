@@ -296,8 +296,8 @@ if __name__ == '__main__':
         logging.info(pretty_str(tup.extracted_keywords+':', tup.relevant_perc ))
     
     # save output(s)
-    train_test_df.to_parquet('output/train-test.parquet')
-    
+    train_df.to_parquet('output/train.parquet')
+    test_df.to_parquet('output/test.parquet')
     logging.info("done.")
     
 # done.
