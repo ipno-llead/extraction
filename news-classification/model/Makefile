@@ -1,5 +1,5 @@
 ## language model should improve if trained on news.parquet 
-languagedata := ../import/output/train-test.parquet
+languagedata := ../import/output/news.parquet
 traindata := ../import/output/train.parquet
 testdata := ../import/output/test.parquet
 
