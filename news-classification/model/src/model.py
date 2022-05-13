@@ -77,7 +77,7 @@ if __name__ == "__main__":
     ##### classifier model #####
     dls_cm = get_dls_cm(args)
     learn_cm = train_cm(dls_cm)
-    # learn_cm.load_encoder("../output/learnlm_finetuned_enc")
+    learn_cm.load_encoder("../output/learnlm_ftuned_enc")
 
     # cm_lr = learn_cm.lr_find()
 
