@@ -91,7 +91,7 @@ if __name__ == "__main__":
     lr = set_cm_lr(1e-1)
     learn_cm.fit_one_cycle(10, lr)  # 10 epoch
     learn_cm.freeze_to(-2)
-    learn_cm.fit_one_cycle(10, slice(lr / (2.6 ** 4), lr))  # 10 epochs
+    learn_cm.fit_one_cycle(11, slice(lr / (2.6 ** 4), lr))  # 10 epochs
     learn_cm.freeze_to(-3)
     learn_cm.fit_one_cycle(10, slice(lr / 2 / (2.6 ** 4), lr / 2))  # 10 epochs
     learn_cm.unfreeze()
