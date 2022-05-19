@@ -36,13 +36,13 @@ def get_dls_cm(args):
     df = pd.read_parquet(args.cm_input).astype(str)
     dls_cm = TextDataLoaders.from_df(
         df,
-        valid_pct=0.2,
+        valid_pct=0.1,
         text_col="content",
         is_lm=False,
         label_col="relevant",
         text_vocab=dls_lm.vocab,
         shuffle=True,
-        bs=128,
+        bs=72,
         seq_len=72,
         y_block=CategoryBlock,
     )
@@ -50,7 +50,7 @@ def get_dls_cm(args):
 
 
 def train_cm(dls_cm):
-    model = text_classifier_learner(dls_cm, AWD_LSTM, drop_mult=0.5, metrics=accuracy)
+    model = text_classifier_learner(dls_cm, AWD_LSTM, drop_mult=0.8, metrics=accuracy)
     return model
     # metrics=[accuracy_multi, RocAucMulti(), accuracy])
 
@@ -68,10 +68,10 @@ if __name__ == "__main__":
     # lm_lr = learn_lm.lr_find()
 
     print("fitting language model")
-    lr = set_lm_lr(lr=1e-2)
-    learn_lm.fit_one_cycle(2, lr)  # 2 epochs
-    learn_lm.unfreeze()
-    learn_lm.fit_one_cycle(8, lr)  # 2 epochs
+    # lr = set_lm_lr(lr=1e-2)
+    # learn_lm.fit_one_cycle(2, lr)  # 2 epochs
+    # learn_lm.unfreeze()
+    # learn_lm.fit_one_cycle(8, lr)  # 2 epochs
     learn_lm = save_lm()
 
     ##### classifier model #####
@@ -82,12 +82,12 @@ if __name__ == "__main__":
     # cm_lr = learn_cm.lr_find()
 
     print("fitting classifier model")
-    lr = set_cm_lr(2e-2)
-    learn_cm.fit_one_cycle(1, lr) # 1 epoch
+    lr = set_cm_lr(1e-1)
+    learn_cm.fit_one_cycle(10, lr) # 1 epoch
     learn_cm.freeze_to(-2)
-    learn_cm.fit_one_cycle(3, slice(lr / (2.6 ** 4), lr)) # 3 epochs
+    learn_cm.fit_one_cycle(10, slice(lr / (2.6 ** 4), lr)) # 10 epochs
     learn_cm.freeze_to(-3)
-    learn_cm.fit_one_cycle(5, slice(lr / 2 / (2.6 ** 4), lr / 2)) # 5 epochs 
+    learn_cm.fit_one_cycle(10, slice(lr / 2 / (2.6 ** 4), lr / 2)) # 10 epochs 
     learn_cm.unfreeze()
     learn_cm.fit_one_cycle(10, slice(lr / 10 / (2.6 ** 4), lr / 10)) # 10 epochs
 
