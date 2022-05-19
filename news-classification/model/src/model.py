@@ -13,13 +13,17 @@ def get_args():
 
 def get_dls_lm(df):
     df = pd.read_parquet(args.lm_input)
-    dls = TextDataLoaders.from_df(df, valid_pct=0.1, text_col="content", is_lm=True, num_workers=0)
+    dls = TextDataLoaders.from_df(
+        df, valid_pct=0.1, text_col="content", is_lm=True, num_workers=0
+    )
     return dls
 
 
 def train_lm(dls_lm):
     # augment the pretrained language model with the unlabeled news articles
-    learn_lm = language_model_learner(dls_lm, AWD_LSTM, metrics=[accuracy, Perplexity()], wd=0.1).to_fp16()
+    learn_lm = language_model_learner(
+        dls_lm, AWD_LSTM, metrics=[accuracy, Perplexity()], wd=0.1
+    ).to_fp16()
     return learn_lm
 
 
@@ -34,17 +38,20 @@ def save_lm():
     return learn_lm
 
 
+def set_cm_lr(lr): return lr
+
+
 def get_dls_cm(args):
     df = pd.read_parquet(args.cm_input).astype(str)
     dls_cm = TextDataLoaders.from_df(
         df,
-        valid_pct=0.2,
+        valid_pct=0.1,
         text_col="content",
         is_lm=False,
         label_col="relevant",
         text_vocab=dls_lm.vocab,
         shuffle=True,
-        bs=128,
+        bs=72,
         seq_len=72,
         y_block=CategoryBlock,
     )
@@ -53,7 +60,7 @@ def get_dls_cm(args):
 
 def train_cm(dls_cm):
     model = text_classifier_learner(
-        dls_cm, AWD_LSTM, drop_mult=0.5, metrics=accuracy_multi
+        dls_cm, AWD_LSTM, drop_mult=0.8, metrics=accuracy_multi
     )
     return model
     # metrics=[accuracy_multi, RocAucMulti(), accuracy])
@@ -77,14 +84,18 @@ if __name__ == "__main__":
     ##### classifier model #####
     dls_cm = get_dls_cm(args)
     learn_cm = train_cm(dls_cm)
-    learn_cm.load_encoder("learnlm_ftuned_enc")
+    learn_cm.load_encoder("../output/learnlm_ftuned_enc")
     # cm_lr = learn_cm.lr_find()
 
     print("fitting classifier model")
-    # learn_cm.freeze()
-    # learn_cm.fine_tune(1, 1e-2)
-    # learn_cm.unfreeze()
-    # learn_cm.fine_tune(1, slice(cm_lr/(2.6**4),cm_lr)
+    lr = set_cm_lr(1e-1)
+    learn_cm.fit_one_cycle(10, lr)  # 10 epoch
+    learn_cm.freeze_to(-2)
+    learn_cm.fit_one_cycle(10, slice(lr / (2.6 ** 4), lr))  # 10 epochs
+    learn_cm.freeze_to(-3)
+    learn_cm.fit_one_cycle(10, slice(lr / 2 / (2.6 ** 4), lr / 2))  # 10 epochs
+    learn_cm.unfreeze()
+    learn_cm.fit_one_cycle(10, slice(lr / 10 / (2.6 ** 4), lr / 10))  # 10 epochs
 
     ##### export classifier model #####
     print("exporting model")
