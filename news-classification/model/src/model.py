@@ -13,8 +13,8 @@ def get_args():
 
 def get_dls_lm(df):
     df = pd.read_parquet(args.lm_input)
-    dls_lm = TextDataLoaders.from_df(df, valid_pct=0.1, text_col="content", is_lm=True, num_workers=0)
-    return dls_lm
+    dls = TextDataLoaders.from_df(df, valid_pct=0.1, text_col="content", is_lm=True, num_workers=0)
+    return dls
 
 
 def train_lm(dls_lm):
@@ -27,9 +27,6 @@ def save_lm():
     learn_lm.save("../output/learnlm_ftuned")
     learn_lm.save_encoder("../output/learnlm_ftuned_enc")
     return learn_lm
-
-
-def set_lm_lr(lr): return lr
 
 
 def get_dls_cm(args):
@@ -50,7 +47,9 @@ def get_dls_cm(args):
 
 
 def train_cm(dls_cm):
-    model = text_classifier_learner(dls_cm, AWD_LSTM, drop_mult=0.8, metrics=accuracy)
+    model = text_classifier_learner(
+        dls_cm, AWD_LSTM, drop_mult=0.8, metrics=accuracy_multi
+    )
     return model
     # metrics=[accuracy_multi, RocAucMulti(), accuracy])
 
@@ -68,20 +67,19 @@ if __name__ == "__main__":
     # lm_lr = learn_lm.lr_find()
 
     print("fitting language model")
-    lr = set_lm_lr(lr=1e-2)
-    learn_lm.fit_one_cycle(2, lr)  # 2 epochs
-    learn_lm.unfreeze()
-    learn_lm.fit_one_cycle(8, lr)  # 2 epochs
+    # lr = set_lm_lr(lr=1e-2)
+    # learn_lm.fit_one_cycle(2, lr)  # 2 epochs
+    # learn_lm.unfreeze()
+    # learn_lm.fit_one_cycle(8, lr)  # 2 epochs
     learn_lm = save_lm()
 
     ##### classifier model #####
     dls_cm = get_dls_cm(args)
     learn_cm = train_cm(dls_cm)
-    # learn_cm.load_encoder("../output/learnlm_finetuned_enc")
+    learn_cm.load_encoder("../output/learnlm_ftuned_enc")
+    # cm_lr = learn_cm.lr_find()
 
-    cm_lr = learn_cm.lr_find()
-
-    print("fitting clZassifier model")
+    print("fitting classifier model")
     lr = set_cm_lr(1e-1)
     learn_cm.fit_one_cycle(10, lr) # 10 epoch
     learn_cm.freeze_to(-2)
