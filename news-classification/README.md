@@ -35,7 +35,7 @@ train a text classifier
   - `content`: full text of the article.
   - `relevant`: boolean indicator for article presence in the manually approved set.
 - writes "import.log", which captures some summary characteristics of the data as well as a few reports for transparency.
-- creates but does not write "merged.parquet", the combined dataframe representing all 3 snapshots from basedash.
+- writes "merged.parquet", the combined dataframe representing all 3 snapshots from basedash.
     - writes a subset of merged to "news.parquet" to use in pre-training
 - with `make_report(df, col)`, can generate a summary of `col`'s prevalence in keyword matched and relevant data. A sample report using `extracted_keywords` is generated with train-test data.
 
