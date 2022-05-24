@@ -315,6 +315,7 @@ if __name__ == '__main__':
     train.to_parquet('output/train.parquet')
     test.to_parquet('output/test.parquet')
     news.to_parquet(output_f)
+    merged.to_parquet('output/merged.parquet')
     logging.info("done.")
     
 # done.
