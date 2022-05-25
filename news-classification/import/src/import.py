@@ -147,7 +147,7 @@ def correct_relevant(df):
 # This method builds the POSITIVE cases: keyword matched AND article relevant (per Rajiv)
 # TEMPORARY: uses 99% of pos cases for train (when relabeling is done, this should be changed back to 80/20)
 def prep_pos_train_test(df, train_perc=0.99, test_perc=0.01):
-    id_mask = (df.officer_id.notnull()) & (df.relevant == 1)
+    id_mask = (df.relevant == 1)
     possible = df.loc[id_mask].article_id.unique().tolist()
     train_list, test_list = train_test_split(possible, test_size=test_perc, train_size=train_perc, shuffle=True)
     assert set(train_list).isdisjoint(set(test_list))
@@ -161,7 +161,7 @@ def prep_neg_train_test(df, pos_rate, curr_train_n, curr_test_n):
     target_test = ceil(curr_test_n/pos_rate)
     needed_train = target_train - curr_train_n
     needed_test = target_test - curr_test_n
-    id_mask = (df.kw_match == 1) & ((df.officer_id.isnull()) | (df.relevant == 0)) 
+    id_mask = (df.kw_match == 1) & (df.relevant == 0) 
     possible = df.loc[id_mask].article_id.unique().tolist()
     assert needed_train + needed_test <= len(possible)
     train_list, test_list = train_test_split(possible, test_size=needed_test, train_size=needed_train, shuffle=True)
@@ -317,12 +317,12 @@ if __name__ == '__main__':
     # ASSUMES initial balance of 50/50 positive/negative
     # proceed with generating training data
     all_ids = set(merged.article_id.unique())
-    pos_ids = set(merged.loc[(merged.officer_id.notnull()) & (merged.relevant == 1)].article_id.unique())
-    neg_ids = set(merged.loc[(merged.kw_match == 1) & ((merged.officer_id.isnull()) | (merged.relevant == 0))].article_id.unique())
+    pos_ids = set(merged.loc[(merged.relevant == 1)].article_id.unique())
+    neg_ids = set(merged.loc[(merged.kw_match == 1) & (merged.relevant == 0)].article_id.unique())
     all_kw_ids = set(merged.loc[(merged.kw_match == 1)])
     both_posneg = pos_ids.intersection(neg_ids)
     kw_diff = all_kw_ids.difference(neg_ids)
-    logging.info('pos.intersection(neg): {}'.format(len(both_posneg)))
+    logging.info('pos.intersection(neg): {}'.format(both_posneg))
     logging.info('all_kw_ids.diff(neg): {}'.format(len(kw_diff)))
     merged = make_train_test_cols(merged, pos_rate=0.5)
     train_test_df = make_train_test_df(merged)
