@@ -5,6 +5,7 @@
 # extraction/news-classification/import/src/import.py
 
 # dependencies
+import yaml
 import argparse
 import logging
 from numpy import nan as nan
@@ -31,6 +32,13 @@ def get_logging(logname):
 
 def open_gz(f):
     return pd.read_csv(f, compression='gzip')
+
+
+def read_yaml(filename):
+    assert open(filename)
+    with open(filename, 'r') as f:
+        data = yaml.load(f, Loader=yaml.SafeLoader)
+    return data
 
 
 def pretty_str(label, a, b=False, newline=False):
@@ -81,6 +89,10 @@ def check_asserts(text_df, sen_df, true_df):
         assert match in matched_sen
 
 
+def labels_from_audit(manual_dict):
+    return {k: (1 if v == 1 else 0) for k,v in manual_dict.items()}
+
+        
 def format_extracted_str(list_str):
     if list_str is not None:
         clean = list_str.replace('[', '').replace(']', '').replace('"', '').lower()
@@ -133,8 +145,9 @@ def correct_relevant(df):
 
 
 # This method builds the POSITIVE cases: keyword matched AND article relevant (per Rajiv)
-def prep_pos_train_test(df, train_perc=0.80, test_perc=0.20):
-    id_mask = (df.officer_id.notnull())
+# TEMPORARY: uses 99% of pos cases for train (when relabeling is done, this should be changed back to 80/20)
+def prep_pos_train_test(df, train_perc=0.99, test_perc=0.01):
+    id_mask = (df.officer_id.notnull()) & (df.relevant == 1)
     possible = df.loc[id_mask].article_id.unique().tolist()
     train_list, test_list = train_test_split(possible, test_size=test_perc, train_size=train_perc, shuffle=True)
     assert set(train_list).isdisjoint(set(test_list))
@@ -148,7 +161,7 @@ def prep_neg_train_test(df, pos_rate, curr_train_n, curr_test_n):
     target_test = ceil(curr_test_n/pos_rate)
     needed_train = target_train - curr_train_n
     needed_test = target_test - curr_test_n
-    id_mask = (df.kw_match == 1) & (df.officer_id.isnull())
+    id_mask = (df.kw_match == 1) & ((df.officer_id.isnull()) | (df.relevant == 0)) 
     possible = df.loc[id_mask].article_id.unique().tolist()
     assert needed_train + needed_test <= len(possible)
     train_list, test_list = train_test_split(possible, test_size=needed_test, train_size=needed_train, shuffle=True)
@@ -162,11 +175,23 @@ def make_train_test_cols(df, pos_rate):
     pos_train_idx, pos_test_idx = prep_pos_train_test(copy)
     neg_train_idx, neg_test_idx = prep_neg_train_test(copy, pos_rate, len(pos_train_idx), len(pos_test_idx))
     # train
+    logging.info('train_idx are disjoint: {}'.format(set(pos_train_idx).isdisjoint(set(neg_train_idx))))
+    logging.info('train_idx intersect: {}'.format(len(set(pos_train_idx).intersection(set(neg_train_idx)))))
     train_idx = pos_train_idx + neg_train_idx
+    logging.info('train size pre col: {}'.format(len(train_idx)))
+    logging.info('pos train size pre col: {}'.format(len(copy.loc[(copy.article_id.isin(train_idx)) & (copy.relevant == 1)].article_id.unique())))
     copy['train'] = [1 if val in train_idx else 0 for val in copy.article_id.values]
+    logging.info('train size post col: {}'.format(len(copy.loc[copy.train == 1].article_id.unique())))
+    logging.info('pos train size post col: {}'.format(len(copy.loc[(copy.train == 1) & (copy.relevant == 1)].article_id.unique())))
+    logging.info('train articles lost: {}'.format(copy.loc[(copy.article_id.isin(train_idx)) & (copy.train == 0)].article_id.values))
     # test
+    logging.info('test_idx are disjoint: {}'.format(set(pos_test_idx).isdisjoint(set(neg_test_idx))))
     test_idx = pos_test_idx + neg_test_idx
+    logging.info('test size pre col: {}'.format(len(test_idx)))
     copy['test'] = [1 if val in test_idx else 0 for val in copy.article_id.values]
+    logging.info('test size post col: {}'.format(len(copy.loc[copy.test == 1].article_id.unique())))
+    logging.info('pos test size post col: {}'.format(len(copy.loc[(copy.test == 1) & (copy.relevant == 1)].article_id.unique())))
+    logging.info('test articles lost: {}'.format(copy.loc[(copy.article_id.isin(test_idx)) & (copy.test == 0)].article_id.values))
     return copy[['article_id', 'matchedsentence_id', 'source_id', 'author', 'title', 'text', \
                 'content', 'officer_id', 'extracted_keywords', 'kw_match', 'relevant', 'train', 'test']]
 
@@ -213,6 +238,17 @@ def make_final_logs(text_df, sen_df, true_df, train_test_df, merged):
     return 1
 
 
+def patch_relevant(df, hand_dict):
+    assert len(hand_dict) > 0
+    copy = df.copy()
+    count = 0
+    for article_id, new_label in hand_dict.items():
+        copy.loc[copy.article_id == article_id, 'relevant'] = new_label
+        count += 1
+    assert count == len(hand_dict)
+    return copy
+
+
 # main
 if __name__ == '__main__':
 
@@ -232,7 +268,11 @@ if __name__ == '__main__':
     news_true_f = args.true
     news_text_f = args.text
     output_f = args.output
-
+    # adding support for reading manually re-labeled relevant data
+    hand_f = 'hand/review_random.yml'
+    hand_dict = read_yaml(hand_f)
+    hand_labels = labels_from_audit(hand_dict)
+    
     text_df = open_gz(news_text_f)
     sen_df = open_gz(news_included_f)
     true_df = open_gz(news_true_f)
@@ -265,13 +305,25 @@ if __name__ == '__main__':
     logging.info(pretty_str('relevant and irrelevant disjoint:', overlap == set()))
     if overlap != set():
         logging.info(pretty_str('size of overlap:', len(overlap)))
-        temp = merged
-        merged = correct_relevant(temp)
+        merged = correct_relevant(merged)
         logging.info(pretty_str('amended relevant column:', True, newline=True))
-    
+    logging.info(pretty_str('updated labels exist:', len(hand_labels) > 0))
+    if len(hand_labels) > 0:
+        logging.info(pretty_str('count to update:', len(hand_labels)))
+        merged = patch_relevant(merged, hand_labels)
+        logging.info(pretty_str('relevant labels updated:', True, newline=True))
+        logging.info(pretty_str('unique relevant articles:', len(set(merged.loc[(merged.relevant == 1)].article_id.unique()))))
     # Per TS, starting train/test size should be roughly 500/100
     # ASSUMES initial balance of 50/50 positive/negative
     # proceed with generating training data
+    all_ids = set(merged.article_id.unique())
+    pos_ids = set(merged.loc[(merged.officer_id.notnull()) & (merged.relevant == 1)].article_id.unique())
+    neg_ids = set(merged.loc[(merged.kw_match == 1) & ((merged.officer_id.isnull()) | (merged.relevant == 0))].article_id.unique())
+    all_kw_ids = set(merged.loc[(merged.kw_match == 1)])
+    both_posneg = pos_ids.intersection(neg_ids)
+    kw_diff = all_kw_ids.difference(neg_ids)
+    logging.info('pos.intersection(neg): {}'.format(len(both_posneg)))
+    logging.info('all_kw_ids.diff(neg): {}'.format(len(kw_diff)))
     merged = make_train_test_cols(merged, pos_rate=0.5)
     train_test_df = make_train_test_df(merged)
     logging.info('train, test summary')
