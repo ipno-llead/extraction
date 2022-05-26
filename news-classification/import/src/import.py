@@ -175,23 +175,16 @@ def make_train_test_cols(df, pos_rate):
     pos_train_idx, pos_test_idx = prep_pos_train_test(copy)
     neg_train_idx, neg_test_idx = prep_neg_train_test(copy, pos_rate, len(pos_train_idx), len(pos_test_idx))
     # train
-    logging.info('train_idx are disjoint: {}'.format(set(pos_train_idx).isdisjoint(set(neg_train_idx))))
-    logging.info('train_idx intersect: {}'.format(len(set(pos_train_idx).intersection(set(neg_train_idx)))))
+    logging.info(pretty_str('train_idx are disjoint:', set(pos_train_idx).isdisjoint(set(neg_train_idx))))
+    logging.info(pretty_str('train_idx intersect:', len(set(pos_train_idx).intersection(set(neg_train_idx)))))
     train_idx = pos_train_idx + neg_train_idx
-    logging.info('train size pre col: {}'.format(len(train_idx)))
-    logging.info('pos train size pre col: {}'.format(len(copy.loc[(copy.article_id.isin(train_idx)) & (copy.relevant == 1)].article_id.unique())))
     copy['train'] = [1 if val in train_idx else 0 for val in copy.article_id.values]
-    logging.info('train size post col: {}'.format(len(copy.loc[copy.train == 1].article_id.unique())))
-    logging.info('pos train size post col: {}'.format(len(copy.loc[(copy.train == 1) & (copy.relevant == 1)].article_id.unique())))
-    logging.info('train articles lost: {}'.format(copy.loc[(copy.article_id.isin(train_idx)) & (copy.train == 0)].article_id.values))
+    logging.info(pretty_str('train articles lost:', copy.loc[(copy.article_id.isin(train_idx)) & (copy.train == 0)].article_id.values))
     # test
-    logging.info('test_idx are disjoint: {}'.format(set(pos_test_idx).isdisjoint(set(neg_test_idx))))
+    logging.info(pretty_str('test_idx are disjoint:', set(pos_test_idx).isdisjoint(set(neg_test_idx))))
     test_idx = pos_test_idx + neg_test_idx
-    logging.info('test size pre col: {}'.format(len(test_idx)))
     copy['test'] = [1 if val in test_idx else 0 for val in copy.article_id.values]
-    logging.info('test size post col: {}'.format(len(copy.loc[copy.test == 1].article_id.unique())))
-    logging.info('pos test size post col: {}'.format(len(copy.loc[(copy.test == 1) & (copy.relevant == 1)].article_id.unique())))
-    logging.info('test articles lost: {}'.format(copy.loc[(copy.article_id.isin(test_idx)) & (copy.test == 0)].article_id.values))
+    logging.info(pretty_str('test articles lost:', copy.loc[(copy.article_id.isin(test_idx)) & (copy.test == 0)].article_id.values))
     return copy[['article_id', 'matchedsentence_id', 'source_id', 'author', 'title', 'text', \
                 'content', 'officer_id', 'extracted_keywords', 'kw_match', 'relevant', 'train', 'test']]
 
@@ -322,8 +315,8 @@ if __name__ == '__main__':
     all_kw_ids = set(merged.loc[(merged.kw_match == 1)])
     both_posneg = pos_ids.intersection(neg_ids)
     kw_diff = all_kw_ids.difference(neg_ids)
-    logging.info('pos.intersection(neg): {}'.format(both_posneg))
-    logging.info('all_kw_ids.diff(neg): {}'.format(len(kw_diff)))
+    logging.info(pretty_str('pos.intersection(neg):', both_posneg))
+    logging.info(pretty_str('all_kw_ids.diff(neg):', len(kw_diff)))
     merged = make_train_test_cols(merged, pos_rate=0.5)
     train_test_df = make_train_test_df(merged)
     logging.info('train, test summary')
