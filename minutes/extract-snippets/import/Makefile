@@ -8,14 +8,20 @@ hrgs := ../../extract/export/output/hearings.parquet
 jsdir := output/jsonl
 trndir := output/training
 
-all: $(trndir)/phase1.parquet \
-	$(trndir)/phase2.parquet \
-	output/hrg-sentences.parquet \
-	output/phase2-all-labels.parquet \
-	output/hearings.parquet
+alllabs := output/all-labels.parquet
+
+all: $(alllabs)
 
 clean: 
 	-rm -r output/*
+
+$(alllabs): src/combine-phases.R \
+	output/phase1-all-labels.parquet \
+	output/phase2-all-labels.parquet
+	Rscript --vanilla $< \
+		--phase1=output/phase1-all-labels.parquet \
+		--phase2=output/phase2-all-labels.parquet \
+		--output=$@
 
 output/hearings.parquet: ../../extract/export/output/hearings.parquet
 	-mkdir output

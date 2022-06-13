@@ -41,8 +41,9 @@ sentlocs <- texts %>% mutate(split = splits$data) %>%
 lbl_locs <- labs %>%
     #     filter(label == "initial_charges") %>%
     distinct(docid, hrgno, labstart = start, labend = end, snippet, label) %>%
+    filter(str_trim(label) != "")
     ## TODO:
-    filter(label %in% c("initial_discipline", "initial_charges", "appeal_denied", "incident_summary"))
+    #filter(label %in% c("initial_discipline", "initial_charges", "appeal_denied", "incident_summary"))
 
 out <- sentlocs %>%
     left_join(lbl_locs, by = c("docid", "hrgno")) %>%
