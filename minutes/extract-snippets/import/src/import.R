@@ -37,6 +37,7 @@ process_js <- function(js) {
     to <- js$doc_pg_to
     txt <- js$data
     labels <- js$label
+    hrgloc <- js$hrg_loc
     if (length(labels) < 1)
         return(tibble(docid = docid,
                       snippet = NA_character_,
@@ -45,8 +46,12 @@ process_js <- function(js) {
     labends <- as.integer(labels[,2])
     substrings <- str_sub(txt, start = labstarts, end = labends) %>%
         str_trim
-    tibble(docid = docid,
+    tibble(fileid = fid,
+           docid = docid,
+           doc_pg_from = from,
+           doc_pg_to = to,
            hrgno = js$hrgno,
+           hrgloc = hrgloc,
            text = js$data,
            start = labstarts,
            end = labends,

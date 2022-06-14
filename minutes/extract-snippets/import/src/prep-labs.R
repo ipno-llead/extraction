@@ -14,15 +14,16 @@ pacman::p_load(
 
 # args {{{
 parser <- ArgumentParser()
-parser$add_argument("--input", default = "output/training/phase2.parquet")
-parser$add_argument("--output", default = "output/all-labels.parquet")
+parser$add_argument("--input", default = "output/training/phase1.parquet")
+parser$add_argument("--output")
 args <- parser$parse_args()
 # }}}
 
 labs <- read_parquet(args$input) %>% filter(!is.na(text))
 
 
-texts <- labs %>% distinct(docid, hrgno, text)
+texts <- labs %>%
+    distinct(docid, hrgno, fileid, doc_pg_from, doc_pg_to, hrgloc, text)
 sents <- text_split(texts$text, units = "sentences")
 
 splits <- as_tibble(sents[c("parent", "index")]) %>%
@@ -36,27 +37,28 @@ sentlocs <- texts %>% mutate(split = splits$data) %>%
     mutate(sentend = cumsum(str_length(sent) + 1),
            sentstart = lag(sentend, default = 0) + 1) %>%
     ungroup %>%
-    select(docid, hrgno, sentence_id, sentence=sent, sentstart, sentend)
+    select(docid, hrgno,
+           any_of(c("fileid", "doc_pg_from", "doc_pg_to", "hrgloc")),
+           sentence_id, sentence=sent, sentstart, sentend)
 
 lbl_locs <- labs %>%
-    #     filter(label == "initial_charges") %>%
-    distinct(docid, hrgno, labstart = start, labend = end, snippet, label) %>%
+    distinct(docid, hrgno, labeler,
+             fileid, doc_pg_from, doc_pg_to, hrgloc,
+             labstart = start, labend = end, snippet, label) %>%
     filter(str_trim(label) != "")
-    ## TODO:
-    #filter(label %in% c("initial_discipline", "initial_charges", "appeal_denied", "incident_summary"))
 
 out <- sentlocs %>%
-    left_join(lbl_locs, by = c("docid", "hrgno")) %>%
+    left_join(lbl_locs, by = c("docid", "hrgno", "fileid", "hrgloc",
+                               "doc_pg_from", "doc_pg_to")) %>%
     mutate(label = case_when(
         labstart < sentend & labend > sentstart ~ label,
         str_detect(sentence, regex("department regulation", ignore_case = T)) ~ "initial_charges",
         TRUE ~ "other")) %>%
     mutate(label = if_else(label %in% c("irrelevant_document", "other"), "", label)) %>%
-    distinct(docid, hrgno, sentence_id, sentence, label) %>%
-    group_by(docid, hrgno, sentence_id, sentence) %>%
-    summarise(label = paste(label, collapse = " ") %>% str_trim,
-              .groups = "drop") %>%
-    mutate(validation = runif(nrow(.)) > .6)
+    distinct(docid, hrgno,
+             fileid, doc_pg_from, doc_pg_to, hrgloc,
+             labeler,
+             sentence_id, sentence, label, labstart, labend)
 
 write_parquet(out, args$output)
 

@@ -14,7 +14,7 @@ pacman::p_load(
 
 # args {{{
 parser <- ArgumentParser()
-parser$add_argument("--input")
+parser$add_argument("--input", default = "../../extract/export/output/hearings.parquet")
 parser$add_argument("--output")
 args <- parser$parse_args()
 # }}}

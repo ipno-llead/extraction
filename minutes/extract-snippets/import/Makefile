@@ -3,19 +3,27 @@
 
 .PHONY: all clean
 
-hrgs := ../../extract/export/output/hearings.parquet
+hrgs    := ../../extract/export/output/hearings.parquet
 
-jsdir := output/jsonl
-trndir := output/training
+jsdir   := output/jsonl
+trndir  := output/training
 
-alllabs := output/all-labels.parquet
+all_labs := output/all-labels.parquet
+irr     := output/irr-review.parquet
 
-all: $(alllabs)
+irr_inputs := output/training/phase1.parquet output/training/phase2.parquet
+
+all: $(all_labs) $(irr)
 
 clean: 
 	-rm -r output/*
 
-$(alllabs): src/combine-phases.R \
+$(irr): src/agreement.R $(irr_inputs)
+	Rscript --vanilla $< \
+		--inputs=$(irr_inputs) \
+		--output=$@
+
+$(all_labs): src/combine-phases.R \
 	output/phase1-all-labels.parquet \
 	output/phase2-all-labels.parquet
 	Rscript --vanilla $< \
