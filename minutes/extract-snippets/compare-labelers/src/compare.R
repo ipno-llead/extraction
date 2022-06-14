@@ -12,26 +12,30 @@ pacman::p_load(
 
 # args {{{
 parser <- ArgumentParser()
-parser$add_argument("--input", default = "../import/output/phase2.parquet")
+parser$add_argument("--input", default = "../import/output/irr-review.parquet")
 parser$add_argument("--output")
 args <- parser$parse_args()
 # }}}
 
 labs <- read_parquet(args$input) %>% filter(!is.na(docid))
 
-all_labs <- distinct(labs, hrgno, docid, labeler, start, end, label) %>%
-    arrange(labeler, docid, hrgno, start, label) %>%
-    group_by(labeler, docid, hrgno) %>%
+xtra_id_fields <- c("fileid", "doc_pg_from", "doc_pg_to", "hrgloc")
+
+all_labs <- labs %>%
+    select(hrgno,
+           docid,
+           all_of(xtra_id_fields),
+           labeler,
+           start = labstart,
+           end = labend,
+           label) %>% distinct %>%
+    arrange(labeler, docid, hrgno,
+            fileid, doc_pg_from, doc_pg_to, hrgloc,
+            start, label) %>%
+    group_by(labeler, docid, hrgno,
+            fileid, doc_pg_from, doc_pg_to, hrgloc) %>%
     mutate(label_seqid = seq_along(label)) %>%
     ungroup
-    #     ungroup %>%
-    #     arrange(labeler, docid, hrgno, start) %>%
-    #     group_by(labeler, docid, hrgno) %>%
-    #     mutate(newitem = (label != lag(label, default = "NOPE")) |
-    #            start > lag(end) + 25) %>%
-    #     replace_na(list(newitem = FALSE)) %>%
-    #     mutate(label_seqid = cumsum(newitem)) %>%
-    #     ungroup %>% select(-newitem)
 
 all_labs %>%
     distinct(docid, hrgno, labeler) %>%

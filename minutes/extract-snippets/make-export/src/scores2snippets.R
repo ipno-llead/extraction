@@ -24,15 +24,15 @@ args <- parser$parse_args()
 scores <- read_parquet(args$scores) %>% select(-score_)
 dockets <- read_parquet(args$dockets)
 
-LABELS <- c("appeal_denied", "incident_summary",
-            "initial_charges", "initial_discipline")
+# LABELS <- c("appeal_denied", "incident_summary",
+#             "initial_charges", "initial_discipline")
 
 predicted <- scores %>%
     pivot_longer(cols = starts_with("score"),
                  names_to = "type", values_to = "score") %>%
     filter(score >= .5) %>%
     mutate(type = str_replace(type, "score_", "")) %>%
-    verify(type %in% LABELS) %>%
+    #     verify(type %in% LABELS) %>%
     select(docid, hrgno, type, snippet = sentence) %>% distinct %>%
     group_by(docid, hrgno, type) %>%
     summarise(snippet = paste(snippet, collapse = " "),
@@ -41,7 +41,7 @@ predicted <- scores %>%
 out <- predicted %>%
     full_join(dockets, by = c("docid", "hrgno")) %>%
     pivot_wider(names_from = type, values_from = snippet) %>%
-    select(docid, hrgno, docket, !!!LABELS)
+    select(docid, hrgno, docket, everything())
 
 stopifnot(nrow(out) == nrow(distinct(out, docid, hrgno)))
 

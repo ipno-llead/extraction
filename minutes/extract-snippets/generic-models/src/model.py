@@ -4,7 +4,7 @@ from fastai.text.all import *
 
 def getargs():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input", default="../import/output/phase2-all-labels.parquet")
+    parser.add_argument("--input", default="../import/output/all-labels.parquet")
     parser.add_argument("--modelout", default="snippet-classifier.pkl")
     return parser.parse_args()
 
