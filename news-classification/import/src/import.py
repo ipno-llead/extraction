@@ -145,8 +145,7 @@ def correct_relevant(df):
 
 
 # This method builds the POSITIVE cases: keyword matched AND article relevant (per Rajiv)
-# TEMPORARY: uses 99% of pos cases for train (when relabeling is done, this should be changed back to 80/20)
-def prep_pos_train_test(df, train_perc=0.99, test_perc=0.01):
+def prep_pos_train_test(df, train_perc=0.80, test_perc=0.20):
     id_mask = (df.relevant == 1)
     possible = df.loc[id_mask].article_id.unique().tolist()
     train_list, test_list = train_test_split(possible, test_size=test_perc, train_size=train_perc, shuffle=True)
@@ -359,8 +358,8 @@ if __name__ == '__main__':
     # save output(s)
     train.to_parquet('output/train.parquet')
     test.to_parquet('output/test.parquet')
-    news.to_parquet(output_f)
-    merged.to_parquet('output/merged.parquet')
+    news.to_parquet('output/news.parquet')
+    merged.to_parquet(output_f)
     logging.info("done.")
     
 # done.
