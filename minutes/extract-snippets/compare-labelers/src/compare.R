@@ -68,14 +68,19 @@ overlap_setup %>%
     filter(label_agree & overlap_pct <= .01) %>%
     distinct(fileid, text, label1) %>%
     pivot_longer(cols = c(label1)) %>%
-    group_by(label = value)
+    group_by(label = value) %>% summarise(n = n())
 
 # tagged the same location, was it the same tag?
 overlap_setup %>%
+    group_by(labeler1, labeler2, label1) %>%
     filter(overlap_pct > 0) %>%
     group_by(fileid, text, label1) %>%
     mutate(label_agree = if_else(any(label_agree), "agree", "disagree")) %>%
     ungroup %>%
+    #     filter(label_agree == "disagree", label1 == "incident_date") %>%
+    #     count(label1, label2, sort=T)
+    # 
+    # 
     count(label1, label_agree) %>%
     pivot_wider(names_from = label_agree, values_from = n) %>%
     mutate(pct = agree/(agree+disagree)) %>%

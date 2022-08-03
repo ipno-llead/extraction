@@ -34,7 +34,7 @@ xref <- ok %>%
     group_by(fileid, doc_pg_from, doc_pg_to) %>%
     filter(n_distinct(docid) == 1, n_distinct(hrgno) == 1) %>%
     ungroup %>%
-    distinct(fileid, doc_pg_from, doc_pg_to, hrgloc, docid, hrgno)
+    distinct(fileid, doc_pg_from, doc_pg_to, docid, hrgno)
 
 salvaged <- no_docid %>%
     select(-docid, -hrgno, -hrgloc) %>%

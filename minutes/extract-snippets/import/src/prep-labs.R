@@ -48,17 +48,22 @@ lbl_locs <- labs %>%
     filter(str_trim(label) != "")
 
 out <- sentlocs %>%
+    filter(fileid == "5e6ff7f") %>%
     left_join(lbl_locs, by = c("docid", "hrgno", "fileid", "hrgloc",
                                "doc_pg_from", "doc_pg_to")) %>%
     mutate(label = case_when(
         labstart < sentend & labend > sentstart ~ label,
         str_detect(sentence, regex("department regulation", ignore_case = T)) ~ "initial_charges",
         TRUE ~ "other")) %>%
-    mutate(label = if_else(label %in% c("irrelevant_document", "other"), "", label)) %>%
+    filter(label != "other") %>%
+    mutate(label = if_else(label %in% c("irrelevant_document"), "", label)) %>%
     distinct(docid, hrgno,
              fileid, doc_pg_from, doc_pg_to, hrgloc,
              labeler,
              sentence_id, sentence, label, labstart, labend)
+
+sentlocs %>%
+    anti_join(lbl_locs %>% filter(fileid == "5e6ff7f"), by = c("docid", "hrgno", "doc_pg_from", "doc_pg_to", "hrgloc"))
 
 write_parquet(out, args$output)
 
