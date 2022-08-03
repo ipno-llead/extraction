@@ -19,6 +19,7 @@ def get_args():
     parser.add_argument("--p1", default='../hand/review_random.yml')
     parser.add_argument("--p2", default='../hand/review_testdf.csv')
     parser.add_argument("--p3", default='../hand/to_label_ai.xlsx')
+    parser.add_argument("--output")
     args = parser.parse_args()
     assert Path(args.input).exists()
     assert Path(args.p1).exists()
@@ -112,7 +113,7 @@ if __name__ == '__main__':
     logger.info('implementing updated records')
     out = update(raw, p1_dict)
     out = update(out, new)
-    out.to_parquet(args.input)
+    out.to_parquet(args.output)
     logger.info(f'updated records and saved to {args.input}')
     logger.info('done')
 
