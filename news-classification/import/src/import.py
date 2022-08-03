@@ -207,10 +207,6 @@ if __name__ == '__main__':
     news_true_f = args.true
     news_text_f = args.text
     output_f = args.output
-    # adding support for reading manually re-labeled relevant data
-    hand_f = 'hand/review_random.yml'
-    hand_dict = read_yaml(hand_f)
-    hand_labels = labels_from_audit(hand_dict)
     
     text_df = open_gz(news_text_f)
     sen_df = open_gz(news_included_f)
@@ -236,7 +232,7 @@ if __name__ == '__main__':
     rel_vals = relevant_articles.union(irrelevant_articles)
     assert all_ids.difference(rel_vals) == set()
     overlap = relevant_articles.intersection(irrelevant_articles)
-    logging.info('relevant && irrelevant articles check')
+    logging.info('raw relevant && irrelevant articles check')
     logging.info('=======================================================================')
     logging.info(pretty_str('unique relevant articles:', len(relevant_articles)))
     logging.info(pretty_str('unique irrelevant articles:', len(irrelevant_articles)))
