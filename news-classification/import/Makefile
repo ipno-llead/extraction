@@ -15,35 +15,44 @@ p2 := hand/review_testdf.csv
 p3 := hand/to_label_ai.xlsx
 
 # task output
-output := output/merged.parquet
+merged := output/merged.parquet
+train := output/train.parquet
 dup_report := output/dup_groups.yml
 
 .PHONY: all clean fixed
 
-all: $(output) $(dup_report) fixed
+all: $(merged) fixed $(train) $(dup_report)
 
 clean: 
 	-rm -r output/*
 
-fixed: \
-		src/patch_relevant.py \
-		$(output)
+$(dup_report): \
+		src/make_reports.py \
+		$(merged)
 	-mkdir output
 	python3 $< \
-		--input=$(output) \
+		--news=$(merged) \
+		--output=$@
+
+$(train): \
+		src/make_train_test.py \
+		$(merged)
+	-mkdir output
+	python3 $< \
+		--input=$(merged) \
+		--output=$@
+
+fixed: \
+		src/patch_relevant.py \
+		$(merged)
+	-mkdir output
+	python3 $< \
+		--input=$(merged) \
 		--p1=$(p1) \
 		--p2=$(p2) \
 		--p3=$(p3)
 
-$(dup_report): \
-		src/duplicate_report.py \
-		$(output)
-	-mkdir output
-	python3 $< \
-		--news=$(output) \
-		--output=$@
-
-$(output): \
+$(merged): \
 		src/import.py \
 		$(news_included) \
 		$(news_true) \
