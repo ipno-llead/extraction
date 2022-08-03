@@ -163,7 +163,7 @@ def make_report(df, col):
     return out
 
 
-def make_final_logs(text_df, sen_df, true_df, train_test_df, merged):
+def make_final_logs(text_df, sen_df, true_df, merged):
     logging.info('I/O id summary')
     logging.info('=======================================================================')
     logging.info(pretty_str('all kw_match articles in raw data:', True))      # asserted by initial_asserts()
@@ -173,7 +173,6 @@ def make_final_logs(text_df, sen_df, true_df, train_test_df, merged):
     logging.info(pretty_str('unique matched sentences:', len(sen_df.id.unique())))
     logging.info(pretty_str('unique matched sentences relevant:', len(true_df.matchedsentence_id.unique())))
     logging.info(pretty_str('unique matched officers relevant:', len(true_df.id.unique())))
-    logging.info(pretty_str('unique articles in train_test:', len(train_test_df.article_id.unique()), newline=True))
     return 1
 
 
@@ -242,12 +241,6 @@ if __name__ == '__main__':
         logging.info(pretty_str('size of overlap:', len(overlap)))
         merged = correct_relevant(merged)
         logging.info(pretty_str('amended relevant column:', True, newline=True))
-    logging.info(pretty_str('updated labels exist:', len(hand_labels) > 0))
-    if len(hand_labels) > 0:
-        logging.info(pretty_str('count to update:', len(hand_labels)))
-        merged = patch_relevant(merged, hand_labels)
-        logging.info(pretty_str('relevant labels updated:', True, newline=True))
-        logging.info(pretty_str('unique relevant articles:', len(set(merged.loc[(merged.relevant == 1)].article_id.unique()))))
 
     # writing a subset of merged to use as pre-training data
     temp = merged.loc[:, ['article_id', 'title', 'content']].drop_duplicates(subset='article_id')

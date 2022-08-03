@@ -39,7 +39,7 @@ $(train): \
 		$(merged)
 	-mkdir output
 	python3 $< \
-		--input=$(merged) \
+		--merged=$(merged) \
 		--output=$@
 
 fixed: \

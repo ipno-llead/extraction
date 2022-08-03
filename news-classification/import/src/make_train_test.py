@@ -16,7 +16,7 @@ from sklearn.model_selection import train_test_split
 # support methods
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--merged")
+    parser.add_argument("--merged", default="output/merged.parquet")
     parser.add_argument("--output")
     return parser.parse_args()
 
@@ -50,42 +50,8 @@ def pretty_str(label, a, b=False, newline=False):
     return '{:50}{}'.format(label, a)
 
 
-def initial_asserts(text_df, sen_df, true_df):
-    assert text_df.shape == (29707, 12)
-    assert sen_df.shape == (10470, 7)
-    assert true_df.shape == (735, 3)
-    assert all(text_df.columns == ['created_at', 'link', 'guid', 'source_id', \
-                                   'updated_at', 'content', 'published_date', 'id', \
-                                   'title', 'is_processed', 'author', 'url'])
-    assert all(sen_df.columns == ['id', 'created_at', 'updated_at', 'article_id', 
-                                   'extracted_keywords', 'text', 'title'])
-    assert all(true_df.columns == ['id', 'matchedsentence_id', 'officer_id'])
-    most = set(text_df.id.unique())
-    mid = set(sen_df.id.unique())
-    least = set(true_df.id.unique())
-    assert len(least) < len(mid) < len(most)
-    assert len(most.intersection(mid)) == 9891
-    assert all(true_df.id == true_df.officer_id)   # what does it mean that this is true? will it always?
-    pairs = set()
-    for tup in true_df.itertuples():
-        pairs.add((tup.id, tup.matchedsentence_id))
-    assert len(pairs) == true_df.shape[0]
-    articles = text_df.id.unique()
-    matched = sen_df.article_id.unique()
-    assert len(matched) < len(articles)
-    assert len(articles) == 29707
-    assert len(matched) == 4323
-    for match in matched:
-        assert match in articles
-    matched_sen = sen_df.id.unique()
-    true_match_sen = true_df.matchedsentence_id.unique()
-    true_match_off = true_df.id.unique()
-    assert len(true_match_sen) < len(matched_sen)
-    assert len(matched_sen) == 10470
-    assert len(true_match_sen) == 479
-    for match in true_match_sen:
-        assert match in matched_sen
-
+def initial_asserts(merged):
+    return 1
 
 # this method is called when relevant_articles and irrelevant_articles are not disjoint sets
 # resolves conflict by upgrading all occurances of an article_id in relevant_articles to relevant
@@ -171,17 +137,9 @@ def make_report(df, col):
     return out
 
 
-def make_final_logs(text_df, sen_df, true_df, train_test_df, merged):
+def make_final_logs(train_df, test_df):
     logging.info('I/O id summary')
     logging.info('=======================================================================')
-    logging.info(pretty_str('all kw_match articles in raw data:', True))      # asserted by check_asserts()
-    logging.info(pretty_str('all matchedsentences in kw_match data:', True))
-    logging.info(pretty_str('unique articles:', len(text_df.id.unique())))
-    logging.info(pretty_str('unique articles w/ kw match:', len(sen_df.article_id.unique())))
-    logging.info(pretty_str('unique matched sentences:', len(sen_df.id.unique())))
-    logging.info(pretty_str('unique matched sentences relevant:', len(true_df.matchedsentence_id.unique())))
-    logging.info(pretty_str('unique matched officers relevant:', len(true_df.id.unique())))
-    logging.info(pretty_str('unique articles in train_test:', len(train_test_df.article_id.unique()), newline=True))
     return 1
 
 
@@ -216,7 +174,7 @@ if __name__ == '__main__':
     
     # load data, initial asserts
     merged = pd.read_parquet(merged_f)
-    initial_asserts(merged)_
+    initial_asserts(merged)
 
     # report lost columns
     print()
@@ -272,27 +230,11 @@ if __name__ == '__main__':
     test.info()
     print()
 
-    # writing a subset of merged to use as pre-training data
-    temp = merged.loc[:, ['article_id', 'title', 'content']].drop_duplicates(subset='article_id')
-    assert len(temp.article_id.unique()) == temp.shape[0]
-    news = temp.sample(temp.shape[0]).reset_index(drop=True)
-    
-    assert make_final_logs(text_df, sen_df, true_df, train_test_df, merged)
-    
-    # generate keyword report (source_id, author also helpful reports)
-    kw_report = make_report(merged, 'extracted_keywords')
-    logging.info('keyword report')
-    logging.info('=======================================================================')
-    logging.info('{:50}{:15}{:10}'.format('extracted_keywords', 'relevant_perc', 'kw_match'))
-    sorted_kw_report = kw_report[['extracted_keywords', 'relevant_perc', 'kw_match']].sort_values(by='relevant_perc', ascending=False)
-    for tup in sorted_kw_report.itertuples():
-        logging.info(pretty_str(tup.extracted_keywords+':', tup.relevant_perc, b=tup.kw_match))
+    assert make_final_logs(merged)
     
     # save output(s)
-    train.to_parquet('output/train.parquet')
+    train.to_parquet(args.output)
     test.to_parquet('output/test.parquet')
-    news.to_parquet('output/news.parquet')
-    merged.to_parquet(output_f)
     logging.info("done.")
     
 # done.
