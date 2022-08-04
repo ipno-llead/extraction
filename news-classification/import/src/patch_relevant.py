@@ -50,6 +50,17 @@ def read_yaml(filename):
     return data
 
 
+def pretty_str(label, a, b=False, newline=False):
+    if newline:
+        if not b:
+            return '{:50}{}{}'.format(label, a, '\n')
+        else:
+            return '{:50}{:10}{:10}{}'.format(label, a, b, '\n')
+    if b:
+        return '{:50}{:10}{:10}'.format(label, a, b)
+    return '{:50}{}'.format(label, a)
+
+
 def labels_from_audit(manual_audit):
     labels = {key:(1 if val == True else 0) for key,val in manual_audit.items()}
     return labels
@@ -83,6 +94,28 @@ def update(l, r):
     return update_from_df(l, r)
 
 
+# Since out.kw_match = out.relevant_count + out.irrelevant_count, and relevant can't be true without kw_match,
+# (out.relevant_count) / (out.kw_match) should be the proportion of relevant samples given kw_match for col value
+def make_report(df, col):
+    kw_match_vc = df.loc[df.kw_match == 1][col].value_counts().to_dict()
+    relevant_vc = df.loc[df.relevant == 1][col].value_counts().to_dict()
+    irrelevant_match_vc = df.loc[(df.kw_match == 1) & (df.relevant != 1)][col].value_counts().to_dict()
+    kws = set(list(kw_match_vc.keys()) + list(relevant_vc.keys()) + list(irrelevant_match_vc.keys()))
+    out_data = {kw:{} for kw in kws}
+    for kw in kws:
+        if kw in kw_match_vc:
+            out_data[kw]['kw_match'] = kw_match_vc[kw]
+        else:
+            out_data[kw]['kw_match'] = 0
+        if kw in relevant_vc:
+            out_data[kw]['relevant_count'] = relevant_vc[kw]
+        else:
+            out_data[kw]['relevant_count'] = 0
+    out = pd.DataFrame.from_dict(out_data).T.reset_index().rename(columns={'index':col})
+    out['relevant_perc'] = round((out.relevant_count) / (out.kw_match), 3)
+    return out
+
+
 # main
 if __name__ == '__main__':
 
@@ -109,12 +142,21 @@ if __name__ == '__main__':
     logger.info('verifying no true records lost from merge')
     assert len(p2_true.difference(new_true)) == len(p3_true.difference(new_true)) == 0
     logger.info('all true records present after merge')
-    
     logger.info('implementing updated records')
     out = update(raw, p1_dict)
     out = update(out, new)
+
+    # generate keyword report (source_id, author also helpful reports)
+    kw_report = make_report(out, 'extracted_keywords')
+    logger.info('keyword report')
+    logger.info('=======================================================================')
+    logger.info('{:50}{:15}{:10}'.format('extracted_keywords', 'relevant_perc', 'kw_match'))
+    sorted_kw_report = kw_report[['extracted_keywords', 'relevant_perc', 'kw_match']].sort_values(by='relevant_perc', ascending=False)
+    for tup in sorted_kw_report.itertuples():
+        logger.info(pretty_str(tup.extracted_keywords+':', tup.relevant_perc, b=tup.kw_match))
+
     out.to_parquet(args.output)
-    logger.info(f'updated records and saved to {args.input}')
+    logger.info(f'updated records and saved to {args.output}')
     logger.info('done')
 
 # done.

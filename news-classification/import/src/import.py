@@ -171,8 +171,6 @@ def make_final_logs(text_df, sen_df, true_df, merged):
     logging.info(pretty_str('unique articles:', len(text_df.id.unique())))
     logging.info(pretty_str('unique articles w/ kw match:', len(sen_df.article_id.unique())))
     logging.info(pretty_str('unique matched sentences:', len(sen_df.id.unique())))
-    logging.info(pretty_str('unique matched sentences relevant:', len(true_df.matchedsentence_id.unique())))
-    logging.info(pretty_str('unique matched officers relevant:', len(true_df.id.unique())))
     return 1
 
 
@@ -248,15 +246,6 @@ if __name__ == '__main__':
     news = temp.sample(temp.shape[0]).reset_index(drop=True)
     
     assert make_final_logs(text_df, sen_df, true_df, merged)
-    
-    # generate keyword report (source_id, author also helpful reports)
-    kw_report = make_report(merged, 'extracted_keywords')
-    logging.info('keyword report')
-    logging.info('=======================================================================')
-    logging.info('{:50}{:15}{:10}'.format('extracted_keywords', 'relevant_perc', 'kw_match'))
-    sorted_kw_report = kw_report[['extracted_keywords', 'relevant_perc', 'kw_match']].sort_values(by='relevant_perc', ascending=False)
-    for tup in sorted_kw_report.itertuples():
-        logging.info(pretty_str(tup.extracted_keywords+':', tup.relevant_perc, b=tup.kw_match))
     
     # save output(s)
     news.to_parquet('output/news.parquet')
