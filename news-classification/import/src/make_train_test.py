@@ -143,17 +143,6 @@ def make_final_logs(train_df, test_df):
     return 1
 
 
-def patch_relevant(df, hand_dict):
-    assert len(hand_dict) > 0
-    copy = df.copy()
-    count = 0
-    for article_id, new_label in hand_dict.items():
-        copy.loc[copy.article_id == article_id, 'relevant'] = new_label
-        count += 1
-    assert count == len(hand_dict)
-    return copy
-
-
 # main
 if __name__ == '__main__':
 
@@ -180,6 +169,9 @@ if __name__ == '__main__':
     print()
     
     # make sure every article_id has a corresponding 'relevant' value
+    relevant_articles = set(merged.loc[merged.relevant == 1].article_id.unique())
+    irrelevant_articles = set(merged.loc[merged.relevant != 1].article_id.unique())
+    overlap = relevant_articles.intersection(irrelevant_articles)
     logging.info('relevant && irrelevant articles check')
     logging.info('=======================================================================')
     logging.info(pretty_str('unique relevant articles:', len(relevant_articles)))
@@ -190,12 +182,6 @@ if __name__ == '__main__':
         logging.info(pretty_str('size of overlap:', len(overlap)))
         merged = correct_relevant(merged)
         logging.info(pretty_str('amended relevant column:', True, newline=True))
-    logging.info(pretty_str('updated labels exist:', len(hand_labels) > 0))
-    if len(hand_labels) > 0:
-        logging.info(pretty_str('count to update:', len(hand_labels)))
-        merged = patch_relevant(merged, hand_labels)
-        logging.info(pretty_str('relevant labels updated:', True, newline=True))
-        logging.info(pretty_str('unique relevant articles:', len(set(merged.loc[(merged.relevant == 1)].article_id.unique()))))
     # Per TS, starting train/test size should be roughly 500/100
     # ASSUMES initial balance of 50/50 positive/negative
     # proceed with generating training data
@@ -230,7 +216,7 @@ if __name__ == '__main__':
     test.info()
     print()
 
-    assert make_final_logs(merged)
+    assert make_final_logs(train, test)
     
     # save output(s)
     train.to_parquet(args.output)
