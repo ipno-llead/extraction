@@ -21,10 +21,12 @@ library(arrow)
 library(tidyverse)
 library(fs)
 
-labs <- dir_ls("../import/output/training") %>%
-    set_names(path_file) %>% set_names(path_ext_remove) %>%
-    map(read_parquet) %>%
-    map_dfr(distinct, labeler, fileid, text, start, end, label)
+labs <- read_parquet(args$input)
+
+# labs <- dir_ls("../import/output/training") %>%
+#     set_names(path_file) %>% set_names(path_ext_remove) %>%
+#     map(read_parquet) %>%
+#     map_dfr(distinct, labeler, fileid, text, start, end, label)
 
 
     # 
@@ -50,18 +52,18 @@ labs <- dir_ls("../import/output/training") %>%
     #                by = c("docid", "hrgno")) %>%
 
 
-
 overlap_setup <- labs %>%
-    full_join(labs, by = c("fileid", "text"),
+    count(label, sort=T)
+    full_join(labs, by = c("fileid", "docid", "hrgno", "sentence_id"),
               suffix = c("1", "2")) %>%
     filter(labeler1 < labeler2) %>%
-    mutate(start_off = abs(start2 - start1),
-           overlap = pmax(0, pmin(end1, end2) - pmax(start1, start2)),
-           max_overlap = pmax(end2 - start2, end1 - start1),
+    mutate(start_off = abs(labstart2 - labstart1),
+           overlap = pmax(0, pmin(labend1, labend2) - pmax(labstart1, labstart2)),
+           max_overlap = pmax(labend2 - labstart2, labend1 - labstart1),
            overlap_pct = overlap / max_overlap) %>%
     mutate(label_agree = label1 == label2) %>%
     select(-start_off, -overlap, -max_overlap,
-           -start1, -end1, -start2, -end2)
+           -labstart1, -labend1, -labstart2, -labend2)
 
 # someone tagged the same category, but in a different location
 overlap_setup %>%
@@ -74,7 +76,7 @@ overlap_setup %>%
 overlap_setup %>%
     group_by(labeler1, labeler2, label1) %>%
     filter(overlap_pct > 0) %>%
-    group_by(fileid, text, label1) %>%
+    group_by(fileid, docid, hrgno, label1) %>%
     mutate(label_agree = if_else(any(label_agree), "agree", "disagree")) %>%
     ungroup %>%
     #     filter(label_agree == "disagree", label1 == "incident_date") %>%
