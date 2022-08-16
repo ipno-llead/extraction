@@ -14,7 +14,7 @@ pacman::p_load(
 
 # args {{{
 parser <- ArgumentParser()
-parser$add_argument("--input", default = "output/training/phase1.parquet")
+parser$add_argument("--input", default = "output/training/llead-document-tagging.parquet")
 parser$add_argument("--output")
 args <- parser$parse_args()
 # }}}

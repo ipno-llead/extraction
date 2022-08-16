@@ -9,27 +9,43 @@ jsdir   := output/jsonl
 trndir  := output/training
 
 all_labs := output/all-labels.parquet
+#all_labs := \
+#	    output/llead-document-tagging-all-labels.parquet \
+#	    output/review-extracted-hearings-all-labels.parquet \
+#	    output/hearing-text-staging-all-labels.parquet
+
 irr     := output/irr-review.parquet
 
-irr_inputs := output/training/phase1.parquet output/training/phase2.parquet
+#irr_inputs := input/llead-document-tagging.zip \
+#	      input/review-extracted-hearings.zip \
+#	      input/hearing-text-staging.zip
 
-all: $(all_labs) $(irr)
+all: $(all_labs)
 
-clean: 
+clean:
 	-rm -r output/*
 
-$(irr): src/agreement.R $(irr_inputs)
+#$(irr): src/agreement.R $(irr_inputs)
+#	Rscript --vanilla $< \
+#		--inputs="$(irr_inputs)" \
+#		--output=$@
+
+$(all_labs): src/combine-labels.R \
+	output/training/hearing-text-staging.parquet \
+	output/training/llead-document-tagging.parquet \
+	output/training/review-extracted-hearings.parquet
 	Rscript --vanilla $< \
-		--inputs=$(irr_inputs) \
+		--traindir="output/training" \
 		--output=$@
 
-$(all_labs): src/combine-phases.R \
-	output/phase1-all-labels.parquet \
-	output/phase2-all-labels.parquet
-	Rscript --vanilla $< \
-		--phase1=output/phase1-all-labels.parquet \
-		--phase2=output/phase2-all-labels.parquet \
-		--output=$@
+
+#$(all_labs): src/combine-phases.R \
+#	output/llead-document-tagging-all-labels.parquet \
+#	output/review-extracted-hearings-all-labels.parquet
+#	Rscript --vanilla $< \
+#		--phase1=output/llead-document-tagging-all-labels.parquet \
+#		--phase2=output/review-extracted-hearings-all-labels.parquet \
+#		--output=$@
 
 output/hearings.parquet: ../../extract/export/output/hearings.parquet
 	-mkdir output
@@ -52,9 +68,9 @@ output/hrg-sentences.parquet: src/prep-sents.R $(hrgs)
 		--input=$(hrgs) \
 		--output=$@
 
-output/%-all-labels.parquet: src/prep-labs.R output/training/%.parquet
+output/%-all-labels.parquet: src/prep-labs.R $(trndir)/%.parquet
 	Rscript --vanilla $< \
-		--input=output/training/$*.parquet \
+		--input=$(trndir)/$*.parquet \
 		--output=$@
 
 # done.

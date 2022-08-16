@@ -11,6 +11,7 @@ pacman::p_load(
     arrow,
     dplyr,
     jsonlite,
+    logger,
     purrr,
     stringr,
     tools
@@ -19,13 +20,14 @@ pacman::p_load(
 
 # args {{{
 parser <- ArgumentParser()
-parser$add_argument("--inputdir", default = "output/jsonl/phase2")
+parser$add_argument("--inputdir", default = "output/jsonl/hearing-text-staging")
 parser$add_argument("--output")
 args <- parser$parse_args()
 # }}}
 
 # process json files {{{
 process_file <- function(filename){
+    log_info(filename)
     readLines(filename) %>% map(fromJSON) %>%
         map_dfr(process_js)
 }
@@ -35,7 +37,7 @@ process_js <- function(js) {
     docid <- js$docid
     from <- js$doc_pg_from
     to <- js$doc_pg_to
-    txt <- js$data
+    txt <- js$text
     labels <- js$label
     hrgloc <- js$hrg_loc
     if (length(labels) < 1)
@@ -52,7 +54,7 @@ process_js <- function(js) {
            doc_pg_to = to,
            hrgno = js$hrgno,
            hrgloc = hrgloc,
-           text = js$data,
+           text = txt,
            start = labstarts,
            end = labends,
            snippet = substrings,
