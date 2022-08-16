@@ -254,7 +254,7 @@ lc_flag <- lc_chunks %>%
 lc <- lc_chunks %>%
     left_join(lc_flag, by = c("fileid", "pageno", "chunkno")) %>%
     mutate(linetype = case_when(
-            hearing && lineno == min_line ~ "hearing_header",
+            hearing & lineno == min_line ~ "hearing_header",
             hearing ~ "hearing",
             chunkno == 0 & lineno < 10 ~ "meeting_header",
             TRUE ~ "other")) %>%
