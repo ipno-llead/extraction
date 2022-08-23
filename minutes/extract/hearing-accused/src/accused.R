@@ -55,7 +55,8 @@ accused <- hearings %>%
                  names_to = "regex",
                  values_to = "hrg_accused") %>%
     filter(!is.na(hrg_accused)) %>%
-    distinct(docid, hrgno, hrg_accused)
+    distinct(docid, hrgno, hrg_accused) %>%
+    filter(hrgno > 0)
 
 log_info(distinct(accused, docid, hrgno) %>% nrow,
          " hearings with accused name identified and extracted")

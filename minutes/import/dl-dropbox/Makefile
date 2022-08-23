@@ -49,7 +49,7 @@ brsd_out_path := output/broussard/bfpcsb
 bsir_db_path := PPACT/data/Bossier Parish/Requested/Bossier Fire and Police Civil Service Board 
 bsir_out_path := output/bossier/bfpcsb
 
-shport_db_path := PPACT/data/Caddo Parish/Data Collected/Shreveport/Shreveport FPCSB
+shport_db_path := PPACT/data/Caddo Parish/Data Collected/Shreveport/Shreveport Fire and Police Civil Service Board
 shport_out_path := output/shreveport/fpcsb
 
 iberia_db_path := PPACT/data/Iberia Parish/Collected/Iberia SO/Minutes 
@@ -63,6 +63,24 @@ westmonroe_out_path := output/westmonroe/fpcsb
 
 monroe_db_path := PPACT/data/Ouchita Parish/Data Collected/Monroe FPCSB
 monroe_out_path := output/monroe/fpcsb
+
+grambling_db_path := PPACT/data/Lincoln Parish/Collected/Grambling/Grambling Civil Service Commission
+grambling_out_path := output/grambling/gcsc
+
+pr_db_path := PPACT/data/St. Tammany/Data Collected/Pearl River/Pearl River Civil Service Commission
+pr_out_path := output/pearl_river/prcsc
+
+alexandria_db_path := PPACT/data/Rapides Parish/Collected/Alexandria Fire and Police Civil Service Board
+alexandria_out_path := output/alexandria/afpcsb
+
+vermilion_db_path := PPACT/data/Vermilion/Collected/Vermilion Police Jury
+vermilion_out_path := output/vermilion/vpj
+
+plaquemines_db_path := PPACT/data/Plaquemines Parish/Data Collected/Plaquemines Fire and Police Civil Service Board
+plaquemines_out_path := output/plaquemines/pfpcsb
+
+hammond_db_path := PPACT/data/Tangipahoa Parish/Data Collected/Hammond Civil Service Board
+hammond_out_path := output/hammond/hcsb
 
 token := ../../../share/creds/dropbox-auth-token.rds
 
@@ -89,8 +107,13 @@ all: \
 	$(iberia_out_path)/index.csv \
 	$(greenwood_out_path)/index.csv \
 	$(westmonroe_out_path)/index.csv \
-	$(monroe_out_path)/index.csv
-
+	$(monroe_out_path)/index.csv \
+	$(grambling_out_path)/index.csv \
+	$(pr_out_path)/index.csv \
+	$(alexandria_out_path)/index.csv \
+	$(vermilion_out_path)/index.csv \
+	$(plaquemines_out_path)/index.csv \
+	$(hammond_out_path)/index.csv
 
 
 $(orl_out_path)/index.csv: src/dl.R
@@ -241,5 +264,47 @@ $(monroe_out_path)/index.csv: src/dl.R
 		--path="$(monroe_db_path)" \
 		--token="$(token)" \
 		--outdir="$(monroe_out_path)"
+
+$(grambling_out_path)/index.csv: src/dl.R
+	-mkdir -p $(grambling_out_path)
+	Rscript --vanilla $< \
+		--path="$(grambling_db_path)" \
+		--token="$(token)" \
+		--outdir="$(grambling_out_path)"
+
+$(pr_out_path)/index.csv: src/dl.R
+	-mkdir -p $(pr_out_path)
+	Rscript --vanilla $< \
+		--path="$(pr_db_path)" \
+		--token="$(token)" \
+		--outdir="$(pr_out_path)"
+
+$(alexandria_out_path)/index.csv: src/dl.R
+	-mkdir -p $(alexandria_out_path)
+	Rscript --vanilla $< \
+		--path="$(alexandria_db_path)" \
+		--token="$(token)" \
+		--outdir="$(alexandria_out_path)"
+
+$(vermilion_out_path)/index.csv: src/dl.R
+	-mkdir -p $(vermilion_out_path)
+	Rscript --vanilla $< \
+		--path="$(vermilion_db_path)" \
+		--token="$(token)" \
+		--outdir="$(vermilion_out_path)"
+
+$(plaquemines_out_path)/index.csv: src/dl.R
+	-mkdir -p $(plaquemines_out_path)
+	Rscript --vanilla $< \
+		--path="$(plaquemines_db_path)" \
+		--token="$(token)" \
+		--outdir="$(plaquemines_out_path)"
+
+$(hammond_out_path)/index.csv: src/dl.R
+	-mkdir -p $(hammond_out_path)
+	Rscript --vanilla $< \
+		--path="$(hammond_db_path)" \
+		--token="$(token)" \
+		--outdir="$(hammond_out_path)"
 
 # done.

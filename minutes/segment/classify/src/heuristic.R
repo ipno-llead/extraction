@@ -435,9 +435,72 @@ westmonroe <- doclines %>% filter(f_region == "westmonroe") %>%
     distinct(fileid, pageno, docid, docpg, lineno, linetype)
 # }}}
 
+# grambling {{{
+
+# no lines with "appeal" reviewed all lines with "police officer"
+
+# }}}
+
+# pearl river {{{
+
+# (also looked for "APPEAL" in the chunk title, and "discipline" anywhere in
+# the text):
+# doclines %>% filter(f_region == "pearl_river") %>%
+#     chunk("^[A-Z ]+$") %>%
+#     filter(str_detect(chunk_title, "HEARING")) %>%
+
+# however: no relevant docs id'd.
+# }}}
+
+# alexandria {{{
+alexandria <- doclines %>% filter(f_region == "alexandria") %>%
+    chunk("ORDER OF BUSINESS") %>%
+    mutate(is_top = text == chunk_title) %>%
+    mutate(is_appeal = lag(is_top) &
+               str_detect(text, "^Appeal") &
+               !str_detect(text, "has been set")) %>%
+    group_by(docid, chunkno) %>%
+    mutate(hearing = any(is_appeal)) %>%
+    ungroup %>%
+    mutate(linetype = case_when(
+        is_appeal ~ "hearing_header",
+        hearing ~ "hearing",
+        docpg == 1 & chunkno < 1 ~ "meeting_header",
+        TRUE ~ "other")) %>%
+    distinct(fileid, pageno, docid, docpg, lineno, linetype)
+# }}}
+
+# vermilion {{{
+# again, no hits for the word "appeal", reviewed all mentions of "officer"
+# doclines %>% filter(f_region == "vermilion") %>%
+#     filter(str_detect(str_to_lower(text), "officer")) %>%
+#     pluck("text")
+# }}}
+
+# plaquemines {{{
+# no docs as of aug-2022 (we have agendas, no minutes)
+#doclines %>% filter(f_region == "plaquemines") %>%
+# }}}
+
+# hammond {{{
+
+hammond <- doclines %>% filter(f_region == "hammond") %>%
+    chunk("^[0-9]+\\.") %>%
+    mutate(hrg = str_detect(str_to_lower(chunk_title), "appeal hearing")) %>%
+    mutate(approval = str_detect(str_to_lower(text), "approval of minutes")) %>%
+    group_by(docid) %>% mutate(approval = cumsum(approval)) %>%
+    mutate(linetype = case_when(
+        hrg & text == chunk_title ~ "hearing_header",
+        hrg ~ "hearing",
+        docpg == 1 & approval < 1 & lineno < 25 ~ "meeting_header",
+        TRUE ~ "other")) %>% ungroup %>%
+    distinct(fileid, pageno, docid, docpg, lineno, linetype)
+
+# }}}
+
 classes <- bind_rows(ww, ebr, la, mv, sl, knr_hearing,
                      knr, lc, bsr, slph, yvl, crn, brs, shreve,
-                     monroe, westmonroe) %>%
+                     monroe, westmonroe, alexandria, hammond) %>%
     select(fileid, pageno, docid, docpg, lineno, linetype) %>%
     arrange(docid, docpg, lineno) %>%
     group_by(docid, docpg) %>%

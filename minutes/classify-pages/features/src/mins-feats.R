@@ -48,11 +48,14 @@ pagenos <- minlines %>%
         re_frontpage_2 = ft & str_detect(text, "^1$"),
         re_contpage_1 = str_detect(text, "page ([2-9])|(1[0-9])"),
         re_contpage_2 = ft & str_detect(text, "^([2-9])|(1[0-9])$"),
+        # dummy for the case where page 1 of a file == page 1 of a meeting
+        re_frontpage_0 = pageno == 1 &
+            (f_region %in% c("grambling", "pearl_river", "vermilion"))
     ) %>%
     summarise(across(starts_with("re_"), max), .groups = "drop")
 
 hdr_feats <- minlines %>%
-    filter(lineno <= 8) %>%
+    filter(lineno <= 8 | (f_region == "alexandria" & lineno < 20)) %>%
     mutate(map_dfc(regexes, ~str_detect(str_trim(str_squish(text)), .))) %>%
     pivot_longer(cols = starts_with("re_"),
                  names_to = "matchname",

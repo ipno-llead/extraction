@@ -85,6 +85,8 @@ out <- ind %>%
     mutate(fn = basename(filename)) %>%
     mutate(file_category = case_when(
             dtct(fn, "(receipt)|(invoice)|(transa)") ~ "receipt",
+            region == "plaquemines" &
+                dtct(fn, "MPRR")                     ~ "receipt",
             dtct(fn, "minutes")                      ~ "minutes",
             dtct(fn, "mins")                         ~ "minutes",
             dtct(db_path, "/rules/")                 ~ "other",

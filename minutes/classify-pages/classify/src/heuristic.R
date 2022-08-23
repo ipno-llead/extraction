@@ -36,6 +36,8 @@ heur <- feats %>%
                 any(name == "re_contpage") ~ "continuation",
                 any(str_detect(name, "_hrg_")) ~ "hearing",
                 any(str_detect(name, "_mtg_")) ~ "meeting",
+                any(str_detect(name, "_frontpage_")) ~ "meeting",
+                any(str_detect(name, "_contpage_")) ~ "continuation",
                 TRUE ~ "continuation"), .groups="drop")
 
 out <- feats %>%

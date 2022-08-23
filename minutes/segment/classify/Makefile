@@ -5,7 +5,8 @@
 # Copyright:   2021, HRDAG, GPL v2 or later
 # =========================================
 
-data    := ../features/export/output/minutes-features.parquet
+data := ../import/output/minutes.parquet
+feats    := ../features/export/output/minutes-features.parquet
 model   := ../train/output/line-classifier.crfsuite
 #crf_output := output/line-labels.parquet
 truth   := ../import/output/training-data.parquet
@@ -21,10 +22,10 @@ all: $(hur_out)
 clean: 
 	-rm -r output/*
 
-$(crf_output): $(crf_src) $(data) $(model)
+$(crf_output): $(crf_src) $(feats) $(model)
 	-mkdir output
 	Rscript --vanilla $< \
-		--data=$(data) \
+		--data=$(feats) \
 		--model=$(model) \
 		--truth=$(truth) \
 		--output=$@ &> output/log.txt
