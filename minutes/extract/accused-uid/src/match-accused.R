@@ -153,6 +153,11 @@ log_info(nrow(pass6), " matches from final pass")
 out <- xtract %>%
     left_join(bind_rows(pass1, pass2, pass3, pass4, pass5, pass6),
               by = c("docid", "hrgno")) %>%
+    left_join(roster %>%
+              transmute(uid, acc_nm = str_glue("{first_name} {last_name}")),
+          by = "uid") %>%
+    mutate(hrg_accused = coalesce(acc_nm, hrg_accused)) %>%
+    select(-acc_nm) %>%
     verify(nrow(.) == nrow(xtract)) %>%
     rename(hrg_acc_uid = uid)
 

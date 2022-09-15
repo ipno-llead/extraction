@@ -56,6 +56,7 @@ accused <- hearings %>%
                  values_to = "hrg_accused") %>%
     filter(!is.na(hrg_accused)) %>%
     distinct(docid, hrgno, hrg_accused) %>%
+    mutate(hrg_accused = str_sub(hrg_accused, 1, 40)) %>%
     filter(hrgno > 0)
 
 log_info(distinct(accused, docid, hrgno) %>% nrow,
