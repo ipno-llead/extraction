@@ -1,3 +1,7 @@
+Note: In Sept/Oct 2022, we streamlined the way we access labeled data from the
+databse. TS is still working on encapsulating that in a script+sql query, but
+for now we use the new import task with frozen CSV snapshots from BaseDash.
+
 # task description
 
 One of the sources of data flowing into LLEAD is an RSS feed of various
