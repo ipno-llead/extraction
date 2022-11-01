@@ -25,6 +25,12 @@ branch:
       - hrg_no
       - matched_uid
       - agency
+  news_article_classification:
+    remote: origin
+    merge: refs/heads/news_article_classification
+    file: output/news_article_classification.csv
+    primaryKey:
+      - article_id
 merge:
   fastForward: only
 pack:

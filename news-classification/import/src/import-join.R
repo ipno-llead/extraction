@@ -80,4 +80,12 @@ out <- staging_candidates %>%
 
 write_parquet(out, args$output)
 
+# note: required for generating new classifications/reviewing existing
+staging_candidates %>%
+    mutate(text = paste(title, content, sep = "")) %>%
+    select(-title, -content) %>%
+    distinct(article_guid, article_id, text, sent_cand, ofcr_cand) %>%
+    write_parquet("output/all-candidates.parquet") %>%
+    invisible()
+
 # done.

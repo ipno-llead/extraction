@@ -6,8 +6,8 @@ from fastai.text.all import *
 
 def getargs():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data")
-    parser.add_argument("--model")
+    parser.add_argument("--data", default = "../import/output/all-candidates.parquet")
+    parser.add_argument("--model", default = "frozen/trained-classifier-exported.zip")
     parser.add_argument("--scores")
     return parser.parse_args()
 
@@ -17,7 +17,7 @@ def getdata(args):
 
 
 def getdls(df, model):
-    return model.dls.test_dl(df.content)
+    return model.dls.test_dl(df.text)
 
 
 def getmodel(args):
@@ -40,5 +40,6 @@ if __name__ == "__main__":
     df = getdata(args)
     dl = getdls(df, learn)
     preds = learn.get_preds(dl=dl)
+
     output = makeexport(df, preds, learn.dls.vocab[1])
-    output.to_parquet(args.scores)
+    output.to_parquet(args.scores, index=False)

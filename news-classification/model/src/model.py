@@ -6,7 +6,7 @@ from fastai.text.all import *
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--lm_input")
-    parser.add_argument("--cm_input")
+    parser.add_argument("--cm_input", default = "../data-update-sep2022/output/labeled-articles.parquet")
     parser.add_argument("--modeloutput")
     return parser.parse_args()
 
@@ -62,7 +62,7 @@ if __name__ == "__main__":
     args = get_args()
 
     ##### language model #####
-    dls_lm = get_dls_lm(args)
+dls_lm = get_dls_lm(args)
     learn_lm = train_lm(dls_lm)
 
     # lm_lr = learn_lm.lr_find()
@@ -75,7 +75,7 @@ if __name__ == "__main__":
     learn_lm = save_lm()
 
     ##### classifier model #####
-    dls_cm = get_dls_cm(args)
+dls_cm = get_dls_cm(args)
     learn_cm = train_cm(dls_cm)
     learn_cm.load_encoder("../output/learnlm_ftuned_enc")
 
