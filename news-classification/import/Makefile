@@ -3,18 +3,13 @@
 
 .PHONY: all clean
 
-snapshotdir := input
-data := $(wildcard input/*.csv)
-
 all: output/labeled-articles.parquet
 
 clean: 
 	-rm -r output/*
 
-output/labeled-articles.parquet: src/import-join.R $(data)
+output/labeled-articles.parquet: src/import-join-prod.R
 	-mkdir output
-	Rscript --vanilla $< \
-		--snapshotdir=$(snapshotdir) \
-		--output=$@
+	Rscript $<
 	
 # done.
