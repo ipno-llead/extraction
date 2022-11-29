@@ -82,6 +82,9 @@ plaquemines_out_path := output/plaquemines/pfpcsb
 hammond_db_path := PPACT/data/Tangipahoa Parish/Data Collected/Hammond Civil Service Board
 hammond_out_path := output/hammond/hcsb
 
+pineville_db_path := PPACT/data/Rapides Parish/Collected/Pineville CSC
+pineville_out_path := output/pineville/pcsc
+
 token := ../../../share/creds/dropbox-auth-token.rds
 
 .PHONY: all clean
@@ -113,7 +116,8 @@ all: \
 	$(alexandria_out_path)/index.csv \
 	$(vermilion_out_path)/index.csv \
 	$(plaquemines_out_path)/index.csv \
-	$(hammond_out_path)/index.csv
+	$(hammond_out_path)/index.csv \
+	$(pineville_out_path)/index.csv
 
 
 $(orl_out_path)/index.csv: src/dl.R
@@ -306,5 +310,12 @@ $(hammond_out_path)/index.csv: src/dl.R
 		--path="$(hammond_db_path)" \
 		--token="$(token)" \
 		--outdir="$(hammond_out_path)"
+
+$(pineville_out_path)/index.csv: src/dl.R
+	-mkdir -p $(pineville_out_path)
+	Rscript --vanilla $< \
+		--path="$(pineville_db_path)" \
+		--token="$(token)" \
+		--outdir="$(pineville_out_path)"
 
 # done.
