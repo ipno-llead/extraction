@@ -25,7 +25,7 @@ clean:
 
 wrgl: $(output)
 	-wrgl init --wrgl-dir $(wrgldir)
-	wrgl pull documents --wrgl-dir $(wrgldir) --depth 1
+	wrgl pull documents --wrgl-dir $(wrgldir)
 	cd $(dir $(wrgldir)) && wrgl commit documents "updated documents"
 	wrgl push origin refs/heads/documents: --wrgl-dir $(wrgldir)
 
