@@ -5,11 +5,14 @@ communicate with external tools:
 
 ## wrgl
 
-[Install](https://www.wrgl.co/doc/guides/installation) wrgl binary and authenticate with
+Install (and update) with this snippet:
 
 ```bash
-wrgl credentials authenticate https://hub.wrgl.co/api
+sudo bash -c 'curl -L https://github.com/wrgl/wrgl/releases/latest/download/install.sh | bash'
 ```
+
+There's no need to authenticate before hand, it will ask you for credentials
+during push/pull as needed.
 
 ## dropbox
 

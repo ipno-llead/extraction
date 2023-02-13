@@ -1,8 +1,11 @@
 remote:
   origin:
-    url: https://hub.wrgl.co/api/users/ipno/repos/data
+    url: https://wrgl.llead.co
     fetch:
-      - +refs/heads/*:refs/remotes/data/*
+      - +refs/heads/event:refs/remotes/origin/event
+      - +refs/heads/personnel:refs/remotes/origin/personnel
+      - +refs/heads/documents:refs/remotes/origin/documents
+      - +refs/heads/news_article_classification:refs/remotes/origin/news_article_classification
 branch:
   event:
     remote: origin

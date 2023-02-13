@@ -14,7 +14,7 @@ all:
 
 wrgl: $(output)
 	-wrgl init --wrgl-dir $(wrgldir)
-	wrgl pull news_article_classification --wrgl-dir $(wrgldir) --depth 1
+	wrgl pull news_article_classification --wrgl-dir $(wrgldir)
 	cd $(dir $(wrgldir)) && wrgl commit news_article_classification "update news article classifications"
 	wrgl push origin refs/heads/news_article_classification: --wrgl-dir $(wrgldir)
 

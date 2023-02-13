@@ -30,7 +30,7 @@ force: ;
 # only locally within the recipe
 output/%.csv: force
 	-wrgl init --wrgl-dir $(wrgldir)
-	wrgl pull $* --wrgl-dir $(wrgldir) --depth 1
+	wrgl pull $* --wrgl-dir $(wrgldir)
 	wrgl export --wrgl-dir $(wrgldir) $* > $@
 
 $(output_mins): src/standardize-agency.R $(input_mins) $(agencies)
