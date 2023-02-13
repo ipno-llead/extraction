@@ -12,19 +12,24 @@ pacman::p_load(
 
 # args {{{
 parser <- ArgumentParser()
-parser$add_argument("--scores")
+parser$add_argument("--scores", default = "../model/output/articles-scores.parquet")
 parser$add_argument("--output")
 args <- parser$parse_args()
 # }}}
 
 scores <- read_parquet(args$scores)
-
+#labs <- read_parquet("../import/output/labeled-articles.parquet")
 out <- scores %>%
-    filter(sent_cand) %>%
-    transmute(article_id, article_guid,
+    left_join(labs %>% select(article_id, truth = relevant),
+              by = "article_id") %>%
+    filter(keyword) %>%
+    transmute(article_id,
+              text,
               score = score_a_relevant,
-              relevant = if_else(score > .5, "relevant", "not_relevant")) %>%
-    arrange(desc(score))
+              relevant = if_else(score > .5, "relevant", "not_relevant"),
+              truth) %>%
+    arrange(desc(score)) %>%
+    filter(is.na(truth) | truth != "a_relevant")
 
 write_csv(out, args$output)
 
