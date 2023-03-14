@@ -52,7 +52,7 @@ create_training_set <- function(articles, candidates) {
         inner_join(articles, by = "article_id") %>%
         filter(officer) %>%
         filter(created_at >= as.Date("2022-01-01"),
-               created_at <= as.Date("2023-01-14")) %>%
+               created_at <= as.Date("2023-02-28")) %>%
         transmute(article_id, text,
                   relevant = if_else(is_hidden,
                                      "b_norelevant",
